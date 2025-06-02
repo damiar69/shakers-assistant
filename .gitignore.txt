@@ -1,0 +1,16 @@
+# Bytecode de Python
+__pycache__/
+*.pyc
+
+# Entorno virtual
+.venv/
+
+# Archivos de entorno
+.env
+
+# Logs
+*.log
+
+# Carpetas de IDE/editor
+.vscode/
+.idea/
