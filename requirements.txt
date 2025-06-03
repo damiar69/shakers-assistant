@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+langchain
+openai
+pinecone-client
+streamlit
+pytest
+langchain-google-genai
+chromadb
+python-dotenv
+langchain-community
+sentence-transformers
