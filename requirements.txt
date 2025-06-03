@@ -10,4 +10,7 @@ langchain-google-genai
 chromadb
 python-dotenv
 langchain-community
-sentence-transformers
+sentence-transformers 
+langchain_chroma 
+langchain_community  
+numpy
