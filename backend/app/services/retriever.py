@@ -12,9 +12,9 @@ from langchain_community.vectorstores import Chroma  # local vector store
 from langchain_google_genai import (
     GoogleGenerativeAIEmbeddings,
 )  # create embeddings API GEMINI
-from langchain.embeddings import (
+from langchain_huggingface import (
     HuggingFaceEmbeddings,
-)  # embeddings ne local si falla gemini
+)  # embeddings with loca modal if we dont have credits on gemini
 
 # Carga la variable GOOGLE_API_KEY desde .env
 load_dotenv()
@@ -26,8 +26,7 @@ CHROMA_DB_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../../data/chroma_db"
 
 def _create_gemini_embeddings():
     """
-    Instantiate Gemini Embeddings with the API Key.
-    Raises ValueError if the key is missing.
+    Create Gemini embeddings
     """
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
@@ -35,7 +34,7 @@ def _create_gemini_embeddings():
 
     return GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-exp-03-07", api_key=api_key
-    )
+    )  # using gemini but we can also uso another provider
 
 
 def _create_fallback_embeddings():
