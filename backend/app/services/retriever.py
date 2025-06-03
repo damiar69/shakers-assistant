@@ -44,7 +44,7 @@ def _create_fallback_embeddings():
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 
-def Chroma_creator() -> Chroma:
+def Chroma_creator(ck_size: int, ck_lap: int = 3) -> Chroma:
     """
     1. Load all .md files from data/kb/
     2. Split each document into fragments
@@ -65,7 +65,7 @@ def Chroma_creator() -> Chroma:
 
     # Creating chunks
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=50
+        chunk_size=ck_size, chunk_overlap=ck_lap
     )  # reducing chunk size
     split_documents = text_splitter.split_documents(documents)
     print(f"Generated {len(split_documents)} text chunks")
@@ -134,5 +134,15 @@ def retrieve_fragments(query: str, k: int = 3) -> List[Tuple[str, float, str]]:
     return output
 
 
+def main():
+    query = "How do payments work?"
+    k = 3
+    results = retrieve_fragments(query, k=k)
+    print(f"Query: {query}\nTop {k} fragments:\n")
+    for idx, (text, score, source) in enumerate(results, start=1):
+        print(f"{idx}. (score={score:.3f}) from {source}:\n{text}\n{'-'*40}\n")
+
+
 if __name__ == "__main__":
-    Chroma_creator()
+    Chroma_creator(500, 50)
+    main()
