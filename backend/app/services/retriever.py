@@ -16,8 +16,8 @@ from langchain_huggingface import (
     HuggingFaceEmbeddings,
 )  # embeddings with loca modal if we dont have credits on gemini
 
-# Carga la variable GOOGLE_API_KEY desde .env
-load_dotenv()
+
+load_dotenv()  # envirment var with api key
 
 BASE_DIR = os.path.dirname(__file__)
 KB_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../../data/kb"))
@@ -30,7 +30,7 @@ def _create_gemini_embeddings():
     """
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("GOOGLE_API_KEY not found in environment variables.")
+        raise ValueError("GOOGLE_API_KEY not found in environment variables")
 
     return GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-exp-03-07", api_key=api_key
@@ -39,57 +39,53 @@ def _create_gemini_embeddings():
 
 def _create_fallback_embeddings():
     """
-    Return a local HuggingFace embedding as a fallback.
-    We use the 'all-MiniLM-L6-v2' model.
+    Return a local HuggingFace embedding, 'all-MiniLM-L6-v2' model
     """
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 
-def index_knowledge_base() -> Chroma:
+def Chroma_creator() -> Chroma:
     """
     1. Load all .md files from data/kb/
     2. Split each document into fragments
     3. Attempt to build the index with Gemini; if it fails, use HuggingFace
     4. Persist the index in Chroma
     """
-    # 1) If an existing index exists, delete it
+    # Delet index if exists
     if os.path.exists(CHROMA_DB_DIR):
-        print(f"Deleting existing Chroma DB at {CHROMA_DB_DIR}…")
+        print(f"Deleting existing Chroma DB at {CHROMA_DB_DIR}")
         shutil.rmtree(CHROMA_DB_DIR)
 
-    # 2) Load Markdown documents
+    # Load  documents .md
     loader = DirectoryLoader(
         KB_DIR, glob="*.md", loader_cls=TextLoader, loader_kwargs={"encoding": "utf-8"}
     )
     documents = loader.load()
-    print(f"Loaded {len(documents)} documents from {KB_DIR}.")
+    print(f"Loaded {len(documents)} documents from {KB_DIR}")
 
-    # 3) Split into chunks
+    # Creating chunks
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     split_documents = text_splitter.split_documents(documents)
-    print(f"Generated {len(split_documents)} text chunks.")
+    print(f"Generated {len(split_documents)} text chunks")
 
-    # 4) Attempt to create embeddings with Gemini
+    # Creating embeddings with Gemini
     try:
         print("Trying to build index with Gemini embeddings...")
         gemini_embeddings = _create_gemini_embeddings()
-        # Instead of a separate test embed, directly attempt to build the index:
-        # if it fails here, execution goes to the except block.
+        # if it fails here, execution goes to HuggingFace
         vector_db = Chroma.from_documents(
             documents=split_documents,
             embedding=gemini_embeddings,
             persist_directory=CHROMA_DB_DIR,
         )
         vector_db.persist()
-        print("Index built successfully with Gemini embeddings.")
+        print("Index built successfully with Gemini embeddings")
         print(f"Chroma DB saved at {CHROMA_DB_DIR}.")
         return vector_db
 
     except Exception as e:
         # Catch any error (e.g., quota exhausted)
-        print(
-            f"Gemini embeddings failed ({e}); falling back to HuggingFace embeddings."
-        )
+        print(f"Gemini embeddings failed ({e}); falling back to HuggingFace embeddings")
 
         # Create HuggingFace embeddings
         hf_embeddings = _create_fallback_embeddings()
@@ -111,21 +107,20 @@ def retrieve_fragments(query: str, k: int = 3) -> List[Tuple[str, float, str]]:
     Given a text query, return the k most similar fragments.
     Uses the persisted Chroma index and embeddings (Gemini or HuggingFace).
     """
-    # 1) If the index doesn't exist, create it
+    # If the index doesn't exist, create it
     if not os.path.exists(CHROMA_DB_DIR):
-        index_knowledge_base()
+        Chroma_creator()
 
-    # 2) Attempt to load Gemini embeddings; if it fails, fallback to HuggingFace
+    # Gemini embeddings or HuggingFace
     try:
         embeddings = _create_gemini_embeddings()
-        # Try embedding the query: if it fails, execution goes to the except block
         _ = embeddings.embed_queries([query])
         print("Using Gemini embeddings for retrieval.")
     except Exception:
         embeddings = _create_fallback_embeddings()
         print("Using HuggingFace embeddings for retrieval.")
 
-    # 3) Load Chroma and perform semantic search
+    # perform semantic search fom chroma
     vector_db = Chroma(persist_directory=CHROMA_DB_DIR, embedding_function=embeddings)
     results = vector_db.similarity_search_with_score(query, k=k)
 
@@ -138,4 +133,4 @@ def retrieve_fragments(query: str, k: int = 3) -> List[Tuple[str, float, str]]:
 
 
 if __name__ == "__main__":
-    index_knowledge_base()
+    Chroma_creator()
