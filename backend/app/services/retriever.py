@@ -64,7 +64,9 @@ def Chroma_creator() -> Chroma:
     print(f"Loaded {len(documents)} documents from {KB_DIR}")
 
     # Creating chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500, chunk_overlap=50
+    )  # reducing chunk size
     split_documents = text_splitter.split_documents(documents)
     print(f"Generated {len(split_documents)} text chunks")
 
