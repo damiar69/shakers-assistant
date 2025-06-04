@@ -26,6 +26,7 @@ from typing import List
 # Import service-layer functions
 from backend.app.services.retriever_openai import retrieve_fragments_openai
 from backend.app.services.llm_gemini import generate_answer_with_references_gemini
+from backend.app.db import add_chat_entry
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -44,7 +45,7 @@ class RAGResponse(BaseModel):
     references: List[str]
 
 
-DISTANCE_THRESHOLD = 1.0
+DISTANCE_THRESHOLD = 1.5
 
 
 @router.post("/query", response_model=RAGResponse)
@@ -55,7 +56,7 @@ async def rag_query(payload: RAGQuery):
     3) Otherwise, call Gemini to generate the answer and return {answer, references}.
     """
     # 1) Retrieve the top-3 fragments
-    frags = retrieve_fragments_openai(payload.query, k=3)
+    frags = retrieve_fragments_openai(payload.query, k=4)
     if not frags:
         # If no fragments are found (empty index or error), return 404
         raise HTTPException(
