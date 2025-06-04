@@ -6,26 +6,67 @@ from typing import List, Dict
 
 from dotenv import load_dotenv
 
-# Importamos el cliente y tipos desde google.genai
+# Import the Gemini client and types
 from google import genai
 from google.genai import types as GeminiTypes
 
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")  # o "GEMINI_API_KEY" según tu .env
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 if GEMINI_API_KEY is None:
-    raise RuntimeError("No se encontró la variable de entorno GOOGLE_API_KEY")
+    raise RuntimeError("Environment variable GOOGLE_API_KEY not found")
 
-# Inicializamos el cliente de Gemini
 client_gemini = genai.Client(api_key=GEMINI_API_KEY)
 
-# Instrucción de sistema: rol/tarea del asistente
-INSTRUCCION_SISTEMA = (
-    "Eres un asistente experto en la plataforma Shakers. "
-    "A partir de los fragmentos de la base de conocimiento que te proporcione, "
-    "responde de forma clara y concisa a la pregunta del usuario. "
-    "Al final de tu respuesta, incluye una sección titulada 'Referencias' "
-    "con la lista de fuentes (archivo.md y chunk) que utilizaste."
+# 1) Fixed system instruction text (answer in the same language as the query)
+SYSTEM_INSTRUCTION = (
+    "You are an expert assistant on the Shakers platform. "
+    "Answer in the same language as the user's question, using only the information provided in the snippets. "
+    "When you finish, include a section titled 'References' at the end, listing the exact source files (file.md and chunk) you used."
 )
+
+# 2) Two brief examples in English (few-shot)
+FEW_SHOT_EXAMPLES = [
+    {
+        "excerpts": [
+            {
+                "source": "payments.md#chunk_0",
+                "text": "In Shakers, payments are processed as follows: the client deposits funds, which are held in escrow until the delivery of the work.",
+            },
+            {
+                "source": "payments_methods.md#chunk_1",
+                "text": "Credit cards and PayPal are accepted. Fees vary by country.",
+            },
+        ],
+        "query": "How do payments work on Shakers?",
+        "answer": (
+            "On Shakers, payments are made via credit card or PayPal. "
+            "Once the client approves the completed work, the held funds are released to the freelancer."
+            "\n\nReferences:\n"
+            "- payments.md#chunk_0\n"
+            "- payments_methods.md#chunk_1"
+        ),
+    },
+    {
+        "excerpts": [
+            {
+                "source": "freelancer.md#chunk_0",
+                "text": "A freelancer is an independent professional offering services via Shakers.",
+            },
+            {
+                "source": "freelancer.md#chunk_2",
+                "text": "To become a freelancer, you must complete your profile with skills and experience.",
+            },
+        ],
+        "query": "What is a freelancer on Shakers?",
+        "answer": (
+            "On Shakers, a freelancer is an independent professional offering services directly to clients. "
+            "To register, you must create a detailed profile listing your skills and experience."
+            "\n\nReferences:\n"
+            "- freelancer.md#chunk_0\n"
+            "- freelancer.md#chunk_2"
+        ),
+    },
+]
 
 
 def generate_answer_with_references_gemini(
@@ -34,52 +75,80 @@ def generate_answer_with_references_gemini(
     model: str = "gemini-2.0-flash",
 ) -> Dict[str, object]:
     """
-    Construye un payload a partir de los fragments (cada uno con 'text' y 'source'),
-    invoca a Gemini usando models.generate_content(...) y devuelve:
+    Builds a structured prompt with:
+      1) System instruction.
+      2) Few-shot examples.
+      3) Retrieved snippets.
+      4) The user's question.
+    Calls Gemini and returns:
       {
-        "answer": texto_generado_por_Gemini,
-        "references": [lista_de_sources_utilizados],
-        "gemini_time_seconds": tiempo que tardó la llamada
+        "answer": generated text,
+        "references": [list of sources],
+        "gemini_time_seconds": time in seconds
       }
     """
 
-    # 1. Ordenamos los fragments por 'score' descendente
-    sorted_frags = sorted(fragments, key=lambda f: f["score"], reverse=True)
+    # 1. Sort fragments by score (distance) ascending (closest first)
+    sorted_frags = sorted(fragments, key=lambda f: f["score"])
 
-    # 2. Construimos la parte de fragments como texto
+    # 2. Build the fragments section in the prompt
     prompt_fragments = ""
     for idx, frag in enumerate(sorted_frags, start=1):
-        source = frag["source"]
-        text = frag["text"].strip().replace("\n", " ")
-        prompt_fragments += f"Fragmento {idx} (origen: {source}):\n{text}\n\n"
+        src = frag["source"]
+        txt = frag["text"].strip().replace("\n", " ")
+        prompt_fragments += f"Snippet {idx} (source: {src}):\n{txt}\n\n"
 
-    # 3. Concatenamos la instrucción de sistema + fragments + pregunta en un solo string
-    payload = (
+    # 3. Build the few-shot part with pre-formatted examples
+    few_shot_text = ""
+    for ex in FEW_SHOT_EXAMPLES:
+        few_shot_text += "Example:\n"
+        for f in ex["excerpts"]:
+            few_shot_text += f"Snippet (source: {f['source']}):\n{f['text']}\n\n"
+        few_shot_text += f"Question: \"{ex['query']}\"\n"
+        few_shot_text += f"Answer: \"{ex['answer']}\"\n\n"
+
+    # 4. Construct the final prompt by concatenating:
+    #    - System instruction
+    #    - Few-shot
+    #    - Section “Your snippets”
+    #    - The user's question
+    full_prompt = (
+        f"{SYSTEM_INSTRUCTION}\n\n"
+        f"{few_shot_text}"
+        f"Your snippets:\n"
         f"{prompt_fragments}"
-        f'Pregunta del usuario: "{query.strip()}"\n\n'
-        f"Por favor, responde basándote en los fragmentos anteriores."
+        f'Question: "{query.strip()}"\n\n'
+        f"Answer:"
     )
 
-    # 4. Llamamos a Gemini usando models.generate_content(...)
+    # 5. Call Gemini using models.generate_content
     start_time = time.time()
     try:
         response = client_gemini.models.generate_content(
             model=model,
-            config=GeminiTypes.GenerateContentConfig(
-                system_instruction=INSTRUCCION_SISTEMA
-            ),
-            contents=payload,
+            config=GeminiTypes.GenerateContentConfig(system_instruction=""),
+            contents=full_prompt,
         )
         elapsed = time.time() - start_time
     except Exception as e:
-        raise RuntimeError(f"Error al llamar a Gemini: {e}")
+        raise RuntimeError(f"Error calling Gemini: {e}")
 
-    # 5. Extraemos el texto generado:
-    #    En esta versión, el resultado está en response.text
+    # 6. Extract generated text from response.text
     generated_text = response.text.strip()
 
-    # 6. Recolectamos la lista de referencias (sources) de los fragments que usamos
-    references = [frag["source"] for frag in sorted_frags]
+    # 7. Extract the list of references from the generated text
+    #    We look for the line starting with “References:” and then take any following lines starting with “- ” or “* ”.
+    references = []
+    for line in generated_text.splitlines():
+        if line.strip().lower().startswith("references"):
+            continue  # skip the header line
+        if line.strip().startswith("- ") or line.strip().startswith("* "):
+            ref = line.strip()[2:]
+            references.append(ref)
+
+    # 8. If no references were found in the text, use the sorted fragments list
+    if not references:
+        references = [frag["source"] for frag in sorted_frags]
 
     return {
         "answer": generated_text,
