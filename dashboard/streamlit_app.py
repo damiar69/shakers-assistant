@@ -5,62 +5,283 @@ import requests
 import streamlit as st
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PAGE CONFIG
+# STREAMLIT PAGE CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="Shakers AI Assistant", page_icon="🤖", layout="wide")
+st.set_page_config(
+    page_title="Shakers AI Assistant",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BACKEND URL (modifica si tu FastAPI no está en localhost:8000)
+# BACKEND URL (ajusta si tu FastAPI no está en localhost:8000)
 # ─────────────────────────────────────────────────────────────────────────────
 BACKEND_URL = os.getenv("SHAKERS_BACKEND_URL", "http://localhost:8000")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CSS PERSONALIZADO
+# INJECT CUSTOM CSS PARA DISEÑO ELEGANTE Y LEGIBLE
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(
     """
     <style>
-    .container{max-width:900px;margin:auto;padding:0 16px;}
+    /* ===========================
+       0) LOGO DE EMPRESA COMO FONDO HEADER
+       =========================== */
+    .logo-header {
+        background: url('https://your-company.com/path/to/logo.png') no-repeat left center;
+        background-size: 40px 40px;
+        padding-left: 56px;
+    }
 
-    /* Input + botón */
-    .input-area{display:flex;gap:8px;margin:16px 0;}
-    .input-area .stTextInput>div{flex:1;}
-    .send-button{background:#007BFF;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:.95rem;cursor:pointer;}
-    .send-button:hover{background:#0056b3;}
+    /* ===========================
+       1) FONDO GLOBAL VERDE CLARO
+       =========================== */
+    html, body, [class*="css"] {
+        background-color: #f0faf2 !important;
+        color: #0a170c !important;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
 
-    /* Burbuja de respuesta */
-    .answer-bubble{background:#F1F3F5;padding:14px 18px;border-radius:12px;max-width:75%;
-                   line-height:1.4;font-size:.95rem;margin-bottom:6px;}
-    .refs{font-size:.85rem;margin-left:18px;color:#555;}
+    /* ===========================
+       2) CONTENEDOR PRINCIPAL
+       =========================== */
+    .container {
+        max-width: 900px;
+        margin: auto;
+        padding: 24px 24px 40px 24px;
+        background-color: transparent;
+    }
+    .divider {
+        border: none;
+        border-top: 1px solid #c4dcc4;
+        margin: 16px 0 24px 0;
+    }
 
-    /* Bloque de recomendaciones */
-    .recs-block{background:#E8F0FE;border-left:4px solid #4285F4;padding:12px 18px;border-radius:6px;max-width:80%;margin-bottom:12px;}
-    .recs-block h3{margin:0 0 8px 0;font-size:1rem;color:#333;}
-    .recs-block ul{padding-left:20px;margin:0;font-size:.9rem;color:#444;}
+    /* ===========================
+       3) CABECERA + LOGOUT
+       =========================== */
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .header-left {
+        display: flex;
+        flex-direction: column;
+    }
+    .header-title {
+        font-size: 2.4rem;
+        color: #0a170c;
+        margin: 0;
+        font-weight: 700;
+    }
+    .header-subtitle {
+        font-size: 1rem;
+        color: #47654a;
+        margin-top: 4px;
+        margin-bottom: 0;
+    }
+    .logout-button {
+        background-color: #ffcc00;
+        color: #0a170c;
+        border: none !important;
+        border-radius: 6px;
+        padding: 6px 16px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .logout-button:hover {
+        background-color: #e6b800;
+    }
 
-    /* Historial de chat */
-    .card{background:#fff;border-radius:8px;padding:16px 20px;margin-bottom:20px;
-          box-shadow:0 4px 12px rgba(0,0,0,.05);}
+    /* ===========================
+       4) PANTALLA DE LOGIN
+       =========================== */
+    .login-box {
+        background-color: rgba(255, 255, 255, 0.6);
+        border-radius: 10px;
+        padding: 24px 32px;
+        margin-top: 60px;
+        margin-bottom: 60px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .login-title {
+        font-size: 1.8rem;
+        color: #0a170c;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    .login-subtext {
+        font-size: 1rem;
+        color: #47654a;
+        margin-bottom: 16px;
+    }
+    .login-input .stTextInput > div {
+        max-width: 70%;
+    }
+    .login-button {
+        background-color: #ffcc00;
+        color: #0a170c;
+        border: none !important;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .login-button:hover {
+        background-color: #e6b800;
+    }
 
-    /* Logout button */
-    .logout-button{background:#DC3545;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.9rem;cursor:pointer;margin-top:8px;}
-    .logout-button:hover{background:#a71d2a;}
+    /* ===========================
+       5) ÁREA DE PREGUNTA + BOTÓN SEND
+       =========================== */
+    .chat-input-area {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+    .chat-input-area .stTextInput > div {
+        flex: 1;
+    }
+    .send-button {
+        background-color: #ffcc00;
+        color: #0a170c;
+        border: none !important;
+        border-radius: 6px;
+        padding: 10px 22px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .send-button:hover {
+        background-color: #e6b800;
+    }
 
-    /* Username input */
-    .username-input .stTextInput>div{max-width:60%;}
+    /* ===========================
+       6) BURBUJA DE RESPUESTA CENTRAL
+       =========================== */
+    .answer-container {
+        background-color: #1f402e;
+        border-radius: 14px;
+        padding: 20px 24px;
+        max-width: 80%;
+        line-height: 1.6;
+        font-size: 1rem;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        color: #ffffff;  /* Texto blanco para alta legibilidad */
+    }
+    .answer-container strong {
+        display: block;
+        color: #ffcc00; /* “Answer:” en dorado */
+        margin-bottom: 8px;
+        font-size: 1.1rem;
+    }
+
+    /* ===========================
+       7) REFERENCIAS DENTRO DE LA BURBUJA
+       =========================== */
+    .refs {
+        font-size: 0.9rem;
+        color: #c0d2c2;
+        margin-top: 12px;
+        margin-left: 16px;
+        line-height: 1.4;
+    }
+
+    /* ===========================
+       8) PANEL “RECOMMENDATIONS”
+       =========================== */
+    .streamlit-expanderHeader {
+        color: #0a170c !important;
+        font-weight: 600 !important;
+        font-size: 1.05rem !important;
+    }
+    .streamlit-expanderContent {
+        background-color: #dbf0dd !important;
+        border-radius: 8px !important;
+        padding: 16px 20px !important;
+    }
+    .recs-block {
+        background-color: #e6f4e9;
+        border-left: 4px solid #ffcc00;
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .recs-block h4 {
+        margin: 0;
+        font-size: 1rem;
+        color: #0a170c;
+        font-weight: 600;
+    }
+    .recs-block p {
+        margin: 4px 0 0 10px;
+        font-size: 0.9rem;
+        color: #47654a;
+        line-height: 1.5;
+    }
+
+    /* ===========================
+       9) PANEL “CHAT HISTORY”
+       =========================== */
+    .history-card {
+        background-color: #e6f4e9;
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .history-card h5 {
+        margin: 0;
+        color: #ffcc00;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    .history-card p {
+        margin: 6px 0 0 0;
+        font-size: 0.95rem;
+        color: #0a170c;
+        line-height: 1.5;
+    }
+    .history-card .refs {
+        font-size: 0.85rem;
+        color: #0a170c;
+        margin-top: 8px;
+        margin-left: 12px;
+        line-height: 1.4;
+    }
+
+    /* ===========================
+       10) FOOTER
+       =========================== */
+    .footer-text {
+        font-size: 0.85rem;
+        color: #47654a;
+        text-align: center;
+        margin-top: 28px;
+        margin-bottom: 12px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SESSION STATE INICIALIZACIÓN
+# SESSION STATE: para login + chat + recomendaciones
 # ─────────────────────────────────────────────────────────────────────────────
 if "username" not in st.session_state:
-    st.session_state.username = ""  # Cadena vacía = no logueado
+    st.session_state.username = ""  # Usuario vacío → mostramos login
 
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # Lista de { "q":..., "a":..., "refs":[...] }
+    st.session_state.chat_history = []  # [{"q": ..., "a": ..., "refs": [...]}]
 
 if "current_a" not in st.session_state:
     st.session_state.current_a = ""
@@ -69,28 +290,22 @@ if "current_refs" not in st.session_state:
     st.session_state.current_refs = []
 
 if "recs_history" not in st.session_state:
-    st.session_state.recs_history = (
-        []
-    )  # Lista de recomendaciones: { "doc":..., "reason":... }
+    st.session_state.recs_history = []  # [{"doc": ..., "reason": ...}]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FUNCIONES AUXILIARES
+# AUXILIAR: eliminar texto duplicado desde “References:”
 # ─────────────────────────────────────────────────────────────────────────────
 def strip_inline_refs(text: str) -> str:
-    """
-    Elimina todo texto a partir de la primera aparición de "References:" (mayús o minús)
-    para evitar duplicar la sección de referencias.
-    """
+    """Elimina todo desde ‘References:’ en adelante."""
     idx = text.lower().find("references:")
     return text if idx == -1 else text[:idx].rstrip()
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# CALLBACK: handle_login()
+# ─────────────────────────────────────────────────────────────────────────────
 def handle_login():
-    """
-    Callback que se ejecuta cuando el usuario hace clic en el botón 'Login'.
-    Guarda el valor de 'input_username' en 'st.session_state.username' y limpia el historial.
-    """
     user = st.session_state.input_username.strip()
     if not user:
         st.warning("Please enter a valid username.")
@@ -102,10 +317,10 @@ def handle_login():
     st.session_state.recs_history = []
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# CALLBACK: handle_logout()
+# ─────────────────────────────────────────────────────────────────────────────
 def handle_logout():
-    """
-    Callback para el botón 'Logout': reinicia todos los estados y vuelve a la pantalla de login.
-    """
     st.session_state.username = ""
     st.session_state.chat_history = []
     st.session_state.current_a = ""
@@ -113,19 +328,15 @@ def handle_logout():
     st.session_state.recs_history = []
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# CALLBACK: handle_send()
+# ─────────────────────────────────────────────────────────────────────────────
 def handle_send():
-    """
-    Callback para el botón 'Send': envía la pregunta al endpoint /rag/query,
-    guarda la respuesta y las referencias, actualiza el historial y luego
-    solicita también recomendaciones al endpoint /recs/personalized.
-    """
     q = st.session_state.input_question.strip()
     if not q:
         return
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # 1) LLAMADA A /rag/query
-    # ─────────────────────────────────────────────────────────────────────────
+    # 1) Llamada a /rag/query
     try:
         resp = requests.post(
             f"{BACKEND_URL}/rag/query",
@@ -137,19 +348,17 @@ def handle_send():
         answer = data.get("answer", "")
         refs = data.get("references", [])
     except Exception:
-        answer = "Error: Could not contact RAG service."
+        answer = "⚠️ Error: Could not contact RAG service."
         refs = []
 
-    # Guardamos en el estado actual
+    # Guardamos la última respuesta
     st.session_state.current_a = answer
     st.session_state.current_refs = refs
 
-    # Añadimos al historial completo
+    # Agregamos al historial completo
     st.session_state.chat_history.append({"q": q, "a": answer, "refs": refs})
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # 2) LLAMADA A /recs/personalized PARA OBTENER RECOMENDACIONES
-    # ─────────────────────────────────────────────────────────────────────────
+    # 2) Llamada a /recs/personalized
     payload_recs = {"user_id": st.session_state.username, "current_query": q}
     try:
         recs_resp = requests.post(
@@ -157,35 +366,35 @@ def handle_send():
         )
         recs_resp.raise_for_status()
         recs_data = recs_resp.json().get("recommendations", [])
-    except requests.exceptions.HTTPError:
-        # Si devuelve 404 (endpoint no implementado aún), devolvemos lista vacía
+    except:
         recs_data = []
-    except Exception:
-        recs_data = []
-
     st.session_state.recs_history = recs_data
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # 3) LIMPIAR EL CAMPO DE PREGUNTA
-    # ─────────────────────────────────────────────────────────────────────────
+    # 3) Limpiar el campo de input
     st.session_state.input_question = ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PANTALLA DE LOGIN (SI NO HAY 'username')
+# 1) PANTALLA DE LOGIN (si no hay user en session_state)
 # ─────────────────────────────────────────────────────────────────────────────
 if not st.session_state.username:
     st.markdown("<div class='container'>", unsafe_allow_html=True)
-    st.markdown("# 🤖 Shakers AI Assistant")
     st.markdown(
-        "Enter your username to start.  \n"
-        "Once logged in, you can ask technical questions about **Shakers**, "
-        "see a clear answer with cited references, and consult your own history."
+        """
+        <div class="login-box">
+          <h2 class="login-title logo-header"> Shakers AI Assistant</h2>
+          <p class="login-subtext">
+            Enter your username to start. Once logged in, you can ask  
+            technical questions about <strong>Shakers</strong>, see a clear  
+            answer with cited references, and consult your own history.
+          </p>
+          <hr class="divider">
+        """,
+        unsafe_allow_html=True,
     )
-    st.markdown("---")
 
     with st.container():
-        st.markdown('<div class="username-input">', unsafe_allow_html=True)
+        st.markdown('<div class="login-input">', unsafe_allow_html=True)
         st.text_input(
             label="Enter your username",
             placeholder="Type your username here...",
@@ -198,36 +407,45 @@ if not st.session_state.username:
             pass
 
     st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()  # Cortamos la ejecución aquí mientras no haya usuario logueado
+    st.stop()  # Detenemos la ejecución hasta que se haga login
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PANTALLA PRINCIPAL (YA LOGUEADO)
+# 2) PANTALLA PRINCIPAL (USUARIO LOGUEADO)
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("<div class='container'>", unsafe_allow_html=True)
-st.markdown("# 🤖 Shakers AI Assistant")
+
+# 2.1) Cabecera con título + subtítulo, y botón Logout alineado a la derecha
 st.markdown(
-    f"Welcome, **{st.session_state.username}**!  \n"
-    "Ask any technical question about **Shakers** below.  \n"
-    "You’ll get a clear answer with cited references, and you can review your full history."
+    """
+    <div class="header-row">
+      <div class="header-left logo-header">
+        <h1 class="header-title"> Shakers AI Assistant</h1>
+        <p class="header-subtitle">
+          Welcome, <strong>"""
+    + st.session_state.username
+    + """</strong>!  
+          Ask any technical question about <strong>Shakers</strong> below.
+        </p>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
-st.markdown("---")
 
-# Botón de Logout (alineado a la derecha)
-with st.container():
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.write("")  # espacio vacío para mantener la columna
-    with col2:
-        if st.button("Logout", on_click=handle_logout, use_container_width=False):
-            pass
+# Botón Logout como Streamlit widget (alineado a la derecha)
+col1, col2 = st.columns([8, 1])
+with col1:
+    st.write("")  # espacio vacío
+with col2:
+    if st.button("Logout", on_click=handle_logout, use_container_width=False):
+        pass
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ÁREA DE PREGUNTA / RESPUESTA
-# ─────────────────────────────────────────────────────────────────────────────
-st.markdown("---")
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+# 2.2) Área de input + botón Send
 with st.container():
-    st.markdown('<div class="input-area">', unsafe_allow_html=True)
+    st.markdown('<div class="chat-input-area">', unsafe_allow_html=True)
 
     st.text_input(
         label="Type your question here",
@@ -235,68 +453,81 @@ with st.container():
         key="input_question",
         label_visibility="collapsed",
     )
+
     if st.button("Send", on_click=handle_send, use_container_width=False):
         pass
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# BURBUJA DE RESPUESTA ÚNICA
-# ─────────────────────────────────────────────────────────────────────────────
+# 2.3) Burbuja de respuesta única (se reemplaza cada vez que se envía una nueva pregunta)
 if st.session_state.current_a:
-    clean_answer = strip_inline_refs(st.session_state.current_a)
+    answer_clean = strip_inline_refs(st.session_state.current_a)
     st.markdown(
-        f'<div class="answer-bubble"><strong>Answer:</strong><br>{clean_answer}</div>',
+        f"""
+        <div class="answer-container">
+          <strong>Answer:</strong>
+          {answer_clean}
+        </div>
+        """,
         unsafe_allow_html=True,
     )
     if st.session_state.current_refs:
         refs_html = "<br>".join(f"• {r}" for r in st.session_state.current_refs)
         st.markdown(
-            f'<div class="refs">References:<br>{refs_html}</div>',
+            f"""
+            <div class="refs">
+              References:<br>{refs_html}
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# BLOQUE DE RECOMENDACIONES
-# ─────────────────────────────────────────────────────────────────────────────
+# 2.4) Panel “Personalized Recommendations” (colapsable)
 if st.session_state.recs_history:
-    st.markdown("---")
-    st.markdown("## 🎯 Personalized Recommendations")
-    # Cada recomendación irá dentro de un <div> con clase .recs-block para estilo
-    for rec in st.session_state.recs_history:
-        doc_name = rec.get("doc", "")
-        reason = rec.get("reason", "")
-        st.markdown(
-            f'<div class="recs-block">'
-            f"<h3>• {doc_name}</h3>"
-            f'<p style="margin:0;margin-left:12px;font-size:.9rem;color:#444;">{reason}</p>'
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-# ─────────────────────────────────────────────────────────────────────────────
-# HISTORIAL DE CHAT (MUESTRA TODAS LAS PREGUNTAS/RESPUESTAS ANTERIORES)
-# ─────────────────────────────────────────────────────────────────────────────
-if st.session_state.chat_history:
-    st.markdown("---")
-    st.markdown("## 💬 Chat History")
-    for idx, entry in enumerate(st.session_state.chat_history, 1):
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(f"**{idx}. Question:**  \n> {entry['q']}")
-        st.markdown("---")
-        ans_clean = strip_inline_refs(entry["a"])
-        st.markdown(f"**Answer:**  \n{ans_clean}")
-        if entry["refs"]:
-            refs_html = "<br>".join(f"• {r}" for r in entry["refs"])
+    with st.expander("🎯 Personalized Recommendations", expanded=False):
+        for rec in st.session_state.recs_history:
+            doc_name = rec.get("doc", "")
+            reason = rec.get("reason", "")
             st.markdown(
-                f'<div class="refs">References:<br>{refs_html}</div>',
+                f"""
+                <div class="recs-block">
+                  <h4>• {doc_name}</h4>
+                  <p>{reason}</p>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
-        st.markdown("</div>", unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FOOTER
-# ─────────────────────────────────────────────────────────────────────────────
-st.markdown("---")
-st.caption("dmiralles AI Assistant")
-st.markdown("</div>", unsafe_allow_html=True)
+# 2.5) Panel “Chat History” (colapsable, scrollable)
+if st.session_state.chat_history:
+    with st.expander("💬 Chat History", expanded=False):
+        for idx, entry in enumerate(st.session_state.chat_history, 1):
+            question = entry["q"]
+            answer = strip_inline_refs(entry["a"])
+            refs = entry.get("refs", [])
+            refs_html = ""
+            if refs:
+                refs_html = "<br>".join(f"• {r}" for r in refs)
+
+            st.markdown(
+                f"""
+                <div class="history-card">
+                  <h5>{idx}. Question:</h5>
+                  <p style="margin-left:10px; color: #0a170c;">{question}</p>
+                  <p style="margin-top:8px; color: #0a170c;"><strong>Answer:</strong> {answer}</p>
+                  {f'<div class="refs">References:<br>{refs_html}</div>' if refs_html else ""}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+
+# 2.6) Footer
+st.markdown(
+    """
+      <p class="footer-text">© 2025 David AI Assistant</p>
+      </div>  <!-- fin de .container -->
+    """,
+    unsafe_allow_html=True,
+)
