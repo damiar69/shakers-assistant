@@ -1,40 +1,24 @@
-# backend/app/routers/recs.py
-
 import os
 import sys
+import logging
+from typing import List
 
-# ────────────────────────────────────────────────────────────────────────────
-# 0) ADD THE PROJECT ROOT FOLDER (shakers-case-study) TO sys.path
-# ────────────────────────────────────────────────────────────────────────────
-# This file is located at: shakers-case-study/backend/app/routers/rag.py
-# We go up FOUR levels to reach shakers-case-study/
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(__file__, os.pardir, os.pardir, os.pardir, os.pardir)
-)
-# Now PROJECT_ROOT points to: C:\Users\ddol\Desktop\shakers-case-study
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
-# ────────────────────────────────────────────────────────────────────────────
-# IMPORTS NORMALES
-# ────────────────────────────────────────────────────────────────────────────
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict
 
-# Importar la función que lee el historial desde SQLite
 from backend.app.db import get_user_history
-
-# Importar el módulo de recomendaciones basado en embeddings
 from backend.app.services.recommendations import recommend_resources
 
 router = APIRouter(tags=["Recommendations"])
+logger = logging.getLogger("recs_router")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Request and response models
+# ─────────────────────────────────────────────────────────────────────────────
 class RecsRequest(BaseModel):
     user_id: str
-    current_query: str  # actualmente no se usa dentro de la lógica
+    current_query: str
 
 
 class SingleRec(BaseModel):
@@ -46,22 +30,37 @@ class RecsResponse(BaseModel):
     recommendations: List[SingleRec]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /recs/personalized endpoint
+# ─────────────────────────────────────────────────────────────────────────────
 @router.post("/personalized", response_model=RecsResponse)
 async def personalized_recs(payload: RecsRequest):
-    user_id = payload.user_id
+    logger.info(
+        f"Generating recommendations for user={payload.user_id!r}, query={payload.current_query!r}"
+    )
 
-    # 1) Leer historial real de SQLite
-    chat_entries = get_user_history(user_id)
+    # 1) Retrieve full chat history for the user
+    chat_entries = get_user_history(payload.user_id)
 
-    # 2) Convertir cada fila ChatEntry a dict con lista de refs
+    # 2) Format history for recommendation service
     history_list = []
     for row in chat_entries:
         refs_list = row.references.split(",") if row.references else []
         history_list.append({"q": row.question, "a": row.answer, "refs": refs_list})
 
-    # 3) Generar recomendaciones usando embeddings
-    recs_raw = recommend_resources(history_list, k=3)
+    # 3) Generate recommendations combining profile + current query
+    try:
+        recs = recommend_resources(
+            chat_history=history_list,
+            current_query=payload.current_query,
+            k=3,
+            alpha=0.8,
+        )
+    except Exception as e:
+        logger.error(f"Recommendation generation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to generate recommendations"
+        )
 
-    # 4) Formatear la salida para que encaje con SingleRec
-    out = [{"doc": r["doc"], "reason": r["reason"]} for r in recs_raw]
-    return RecsResponse(recommendations=out)
+    logger.info(f"Returning {len(recs)} recommendations")
+    return RecsResponse(recommendations=recs)
