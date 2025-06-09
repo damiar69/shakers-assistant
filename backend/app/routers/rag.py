@@ -1,46 +1,41 @@
+# backend/app/routers/rag.py
+
 """
 RAG router: Defines the API endpoint for Retrieval-Augmented Generation (RAG).
 
 This module provides a FastAPI router with a single POST endpoint `/query` that:
 1. Retrieves relevant document fragments using the retriever service.
 2. Checks if the query is within scope based on a distance threshold.
-3. Generates an answer with citations via an LLM.
-4. Stores the interaction in the database.
+3. Generates an answer via the LLM using only the snippet texts.
+4. Stores the interaction in the database, with references derived from the fragments.
 """
 
 import os
 import sys
+import logging
 
-# ────────────────────────────────────────────────────────────────────────────
-# 0) Add project root (shakers-case-study) to sys.path
-# ────────────────────────────────────────────────────────────────────────────
-# This file is located at: shakers-case-study/backend/app/routers/rag.py
-# Ascend four levels to reach project root
+# 0) Add project root to sys.path for absolute imports
 PROJECT_ROOT = os.path.abspath(
     os.path.join(__file__, os.pardir, os.pardir, os.pardir, os.pardir)
 )
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# ────────────────────────────────────────────────────────────────────────────
-# 1) Standard imports
-# ────────────────────────────────────────────────────────────────────────────
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 
-# RAG services
 from backend.app.services.retriever_openai import retrieve_fragments_openai
 from backend.app.services.llm_gemini import generate_answer_with_references_gemini
 from backend.app.db import add_chat_entry
 
-# FastAPI router setup
 router = APIRouter(tags=["RAG"])
+logger = logging.getLogger("rag_router")
 
 
 class RAGQuery(BaseModel):
-    user_id: str  # Unique identifier for the user
-    query: str  # User's question text
+    user_id: str
+    query: str
 
 
 class RAGResponse(BaseModel):
@@ -48,62 +43,43 @@ class RAGResponse(BaseModel):
     references: List[str]
 
 
-# Distance threshold: if the minimum similarity distance exceeds this value,
-# the query is considered out-of-scope
+# If the minimum distance exceeds this, we consider the query out of scope
 DISTANCE_THRESHOLD = 1.5
 
 
 @router.post("/query", response_model=RAGResponse)
 async def rag_query(payload: RAGQuery):
-    """
-    Handle RAG query:
-    1) Retrieve top-k document fragments (default k=4).
-    2) If the smallest distance > threshold, return an out-of-scope message.
-    3) Otherwise, generate an answer with citations via Gemini.
-    4) Store the conversation entry in the database.
-    """
-    # 1) Fetch top-k fragments: each tuple = (text, distance, source)
+    # 1) Retrieve top-4 fragments: each is (text, distance, source)
     fragments = retrieve_fragments_openai(payload.query, k=4)
     if not fragments:
-        # No fragments found: KB not indexed or is empty
-        raise HTTPException(
-            status_code=404,
-            detail="Knowledge base not indexed or contains no documents",
-        )
+        # KB not indexed or empty
+        raise HTTPException(404, "Knowledge base not indexed or contains no documents")
 
-    # 2) Compute minimum distance to detect out-of-scope queries
-    distances = [score for (_, score, _) in fragments]
-    min_distance = min(distances)
-    if min_distance > DISTANCE_THRESHOLD:
-        return RAGResponse(
-            answer="Sorry, I have no information on that.", references=[]
-        )
+    # 2) Detect out-of-scope by minimum distance
+    distances = [dist for (_, dist, _) in fragments]
+    if min(distances) > DISTANCE_THRESHOLD:
+        answer = "Sorry, I have no information on that."
+        # Persist the “no info” interaction
+        add_chat_entry(payload.user_id, payload.query, answer, [])
+        return RAGResponse(answer=answer, references=[])
 
-    # 3) Prepare fragments for the LLM: list of dicts
-    fragments_payload = [
-        {"text": text, "score": score, "source": source}
-        for text, score, source in fragments
-    ]
+    # 3) Prepare only snippet texts for the LLM
+    snippet_texts = [text for (text, _, _) in fragments]
 
-    # Call the LLM service to generate the answer and references
-    rag_output = generate_answer_with_references_gemini(
-        fragments_payload, payload.query
+    # 4) Generate answer via Gemini (only 'answer' key is used)
+    rag_output = generate_answer_with_references_gemini(snippet_texts, payload.query)
+    answer_text = rag_output.get("answer", "").strip()
+
+    # 5) Build references from fragment sources, preserving order and dedup
+    references = list(dict.fromkeys([src for (_, _, src) in fragments]))
+
+    # 6) Persist the chat entry
+    add_chat_entry(payload.user_id, payload.query, answer_text, references)
+
+    # 7) Log for debugging
+    logger.info(
+        f"[RAG] user={payload.user_id} query='{payload.query}' "
+        f"-> answer_length={len(answer_text)} refs={references}"
     )
 
-    # Remove duplicate references while preserving order
-    unique_refs = list(dict.fromkeys(rag_output.get("references", [])))
-
-    # 4) Log the interaction in the database
-    add_chat_entry(
-        user_id=payload.user_id,
-        question=payload.query,
-        answer=rag_output.get("answer", ""),
-        references=unique_refs,
-    )
-
-    # 5) Debug output
-    print(f"[RAG] Query: {payload.query}")
-    print(f"[RAG] Retrieved fragments (text, score, source): {fragments}")
-    print(f"[RAG] References returned: {unique_refs}")
-
-    return RAGResponse(answer=rag_output.get("answer", ""), references=unique_refs)
+    return RAGResponse(answer=answer_text, references=references)
