@@ -43,43 +43,47 @@ class RAGResponse(BaseModel):
     references: List[str]
 
 
-# If the minimum distance exceeds this, we consider the query out of scope
-DISTANCE_THRESHOLD = 1.5
+DISTANCE_THRESHOLD = 1.0
 
 
 @router.post("/query", response_model=RAGResponse)
 async def rag_query(payload: RAGQuery):
-    # 1) Retrieve top-4 fragments: each is (text, distance, source)
-    fragments = retrieve_fragments_openai(payload.query, k=4)
+    logger.info(f"→ RAG query start: user={payload.user_id!r} query={payload.query!r}")
+
+    # 1) Retrieve fragments
+    fragments = retrieve_fragments_openai(payload.query, k=3)
+    logger.debug(f"Fragments received: {[(round(d,3),src) for _,d,src in fragments]}")
     if not fragments:
-        # KB not indexed or empty
+        logger.error("Knowledge base not indexed or empty")
         raise HTTPException(404, "Knowledge base not indexed or contains no documents")
 
-    # 2) Detect out-of-scope by minimum distance
+    # 2) Out-of-scope detection
     distances = [dist for (_, dist, _) in fragments]
     if min(distances) > DISTANCE_THRESHOLD:
         answer = "Sorry, I have no information on that."
-        # Persist the “no info” interaction
+        logger.info(
+            f"Out-of-scope (min_distance={min(distances):.3f}), returning fallback answer"
+        )
         add_chat_entry(payload.user_id, payload.query, answer, [])
         return RAGResponse(answer=answer, references=[])
 
-    # 3) Prepare only snippet texts for the LLM
+    # 3) Prepare snippets for LLM
     snippet_texts = [text for (text, _, _) in fragments]
+    logger.debug(f"Passing {len(snippet_texts)} snippets to LLM")
 
-    # 4) Generate answer via Gemini (only 'answer' key is used)
+    # 4) Call Gemini to generate answer
+    logger.info("Invoking LLM (Gemini) for response generation")
     rag_output = generate_answer_with_references_gemini(snippet_texts, payload.query)
     answer_text = rag_output.get("answer", "").strip()
+    logger.debug(f"LLM answer (len={len(answer_text)}): {answer_text!r}")
 
-    # 5) Build references from fragment sources, preserving order and dedup
+    # 5) Build and dedupe references
     references = list(dict.fromkeys([src for (_, _, src) in fragments]))
+    logger.debug(f"References extracted: {references}")
 
-    # 6) Persist the chat entry
+    # 6) Persist interaction
     add_chat_entry(payload.user_id, payload.query, answer_text, references)
+    logger.info("Chat entry persisted to database")
 
-    # 7) Log for debugging
-    logger.info(
-        f"[RAG] user={payload.user_id} query='{payload.query}' "
-        f"-> answer_length={len(answer_text)} refs={references}"
-    )
-
+    logger.info("← RAG query end")
     return RAGResponse(answer=answer_text, references=references)
