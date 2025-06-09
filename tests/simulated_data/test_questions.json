@@ -1,0 +1,61 @@
+[
+  {
+    "id": 1,
+    "question": "How do payments work on Shakers?",
+    "ideal_answer": "Shakers uses an escrow system: the client deposits funds when posting a project. Once the freelancer delivers and the client approves the work, the funds are released. If a dispute arises, Shakers Support mediates and can issue refunds.",
+    "references": [
+      "payments.md",
+      "payment_disputes_and_refunds.md"
+    ]
+  },
+  {
+    "id": 2,
+    "question": "What payment methods are accepted on Shakers?",
+    "ideal_answer": "Shakers accepts major credit and debit cards (Visa, MasterCard, Amex), PayPal, and — for larger projects — bank transfers. Crypto payments (BTC, ETH) are optional and subject to exchange-rate locking at project start.",
+    "references": [
+      "payments_methods.md"
+    ]
+  },
+  {
+    "id": 3,
+    "question": "What is a freelancer on Shakers?",
+    "ideal_answer": "A freelancer is a self-employed professional who registers on Shakers by completing a profile with skills, experience, and portfolio, then browses and bids on projects that match their expertise.",
+    "references": [
+      "freelancer.md"
+    ]
+  },
+  {
+    "id": 4,
+    "question": "How do I find the right freelancer for my project?",
+    "ideal_answer": "Use the platform’s search filters (skill, experience level, rate) or post a project and review bids. You can view freelancer profiles, ratings, past work, and directly message candidates before hiring.",
+    "references": [
+      "find_freelancer.md"
+    ]
+  },
+  {
+    "id": 5,
+    "question": "How do I post a new project?",
+    "ideal_answer": "Go to Dashboard → Post a Project. Enter a clear title, detailed description, budget or hourly rate, required skills and milestones. Review and submit; freelancers will then send you proposals.",
+    "references": [
+      "post_project.md"
+    ]
+  },
+  {
+    "id": 6,
+    "question": "How should I set up my client profile on Shakers?",
+    "ideal_answer": "Complete your profile by uploading a logo or photo, adding a company bio, specifying your industry, and filling in your contact details under Profile Setup. This builds trust with freelancers.",
+    "references": [
+      "client_requirements.md",
+      "profile_setup.md"
+    ]
+  },
+  {
+    "id": 7,
+    "question": "How can I communicate securely with freelancers?",
+    "ideal_answer": "Use Shakers’ built-in messaging system (Communication & Messaging). Messages are encrypted end-to-end and comply with the platform’s privacy policy to keep your data safe.",
+    "references": [
+      "communication_and_messaging.md",
+      "security_and_privacy.md"
+    ]
+  }
+]

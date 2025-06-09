@@ -1,0 +1,1 @@
+Es complicado sacar una recomendación a partir de los documentos no consultados ya que el top 3 chunks enviados ser de 3 documentos disitntos y si la información esta solo en el primer chunk y por tanto 1 documento, los otros dos documentos no van ser recomendados porque los tratara como vistos

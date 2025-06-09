@@ -22,7 +22,7 @@ class ChatEntry(SQLModel, table=True):
 # 2) CONFIGURACIÓN DE LA BASE DE DATOS (SQLite)
 # ─────────────────────────────────────────────────────────────────────────────
 # Queremos que el fichero .db esté en: shakers-case-study/data/shakers.db
-# Para ello, obtenemos la ruta absoluta desde este archivo.
+# Para ello, obtenemos la ruta absoluta desde este archivo db.py.
 DB_FILE = os.path.abspath(
     os.path.join(__file__, os.pardir, os.pardir, os.pardir, "data", "shakers.db")
 )

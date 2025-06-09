@@ -1,5 +1,3 @@
-# backend/app/services/retriever_openai.py
-
 #### LIBRARIES
 import os  # for path manipulations and file operations
 import shutil  # to delete existing directories
@@ -262,4 +260,4 @@ def retrieve_fragments_openai(query: str, k: int = 3) -> List[Tuple[str, float, 
 # Entry point
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    create_chroma_index(600, 60)
+    create_chroma_index(700, 80)

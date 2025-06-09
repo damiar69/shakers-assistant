@@ -47,9 +47,16 @@ def recommend_resources(
         seen_embs = [DOC_EMBEDDINGS[d] for d in seen_docs if d in DOC_EMBEDDINGS]
         if seen_embs:
             user_emb = np.mean(np.stack(seen_embs), axis=0)
+            # Ensure numpy array
+            user_emb = np.array(user_emb, dtype=float)
 
     # 3) Compute embedding of the current query
-    query_emb = get_openai_embedding(current_query)
+    raw_query_emb = get_openai_embedding(current_query)
+    # Convert to numpy array if needed
+    if isinstance(raw_query_emb, list):
+        query_emb = np.array(raw_query_emb, dtype=float)
+    else:
+        query_emb = raw_query_emb
 
     # 4) Score each unseen document by a weighted sum of profile & query similarity
     candidates = []

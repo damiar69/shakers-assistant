@@ -1,0 +1,36 @@
+[
+  {
+    "user_id": "alecy",
+    "history": [
+      {
+        "q": "How do payments work on Shakers?",
+        "a": "On Shakers, clients deposit funds in escrow via credit card or PayPal. Once approved, funds are released.",
+        "refs": ["payments.md", "payments_methods.md"]
+      },
+      {
+        "q": "What is a freelancer on Shakers?",
+        "a": "A freelancer is a self-employed professional who offers services on Shakers by creating a profile and bidding on projects.",
+        "refs": ["freelancer_definition.md"]
+      }
+    ]
+  },
+  {
+    "user_id": "bob",
+    "history": [
+      {
+        "q": "How do I post a project?",
+        "a": "Go to Dashboard > Post a Project, fill in details and submit.",
+        "refs": ["post_project.md", "dashboard_overview.md"]
+      },
+      {
+        "q": "Can I get a refund if I'm not satisfied?",
+        "a": "Yes, you can dispute the payment and request a refund via Support Center.",
+        "refs": ["payment_disputes_and_refunds.md"]
+      }
+    ]
+  },
+  {
+    "user_id": "coral",
+    "history": []
+  }
+]
