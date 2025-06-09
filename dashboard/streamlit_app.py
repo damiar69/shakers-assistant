@@ -20,265 +20,197 @@ st.set_page_config(
 BACKEND_URL = os.getenv("SHAKERS_BACKEND_URL", "http://localhost:8000")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# INJECT CUSTOM CSS PARA DISEÑO ELEGANTE Y LEGIBLE
+# INJECT CUSTOM CSS PARA DISEÑO “VERDE PROFUNDO” ELEGANTE
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(
     """
     <style>
-    /* ===========================
-       0) LOGO DE EMPRESA COMO FONDO HEADER
-       =========================== */
-    .logo-header {
-        background: url('https://your-company.com/path/to/logo.png') no-repeat left center;
-        background-size: 40px 40px;
-        padding-left: 56px;
+    /* 1) Fondo principal: degradado verde + texto claro */
+    html, body, .stApp {
+        margin: 0; padding: 0;
+        background: linear-gradient(180deg, #0a2b10 0%, #14421f 80%) !important;
+        color: #e6f0e8 !important;
+    }
+    div[data-testid="stAppViewContainer"] > .main,
+    div[data-testid="stSidebarNav"],
+    div[data-testid="stToolbar"],
+    [class*="css-vgazjp"] {
+        background-color: transparent !important;
+    }
+    footer.st-krEhIo, #MainMenu {
+        visibility: hidden !important;
     }
 
-    /* ===========================
-       1) FONDO GLOBAL VERDE CLARO
-       =========================== */
-    html, body, [class*="css"] {
-        background-color: #f0faf2 !important;
-        color: #0a170c !important;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    }
-    #MainMenu { visibility: hidden; }
-    footer { visibility: hidden; }
-
-    /* ===========================
-       2) CONTENEDOR PRINCIPAL
-       =========================== */
+    /* 2) Contenedor general */
     .container {
         max-width: 900px;
         margin: auto;
-        padding: 24px 24px 40px 24px;
-        background-color: transparent;
+        padding: 32px 24px 48px 24px;
+        background-color: transparent !important;
     }
     .divider {
         border: none;
-        border-top: 1px solid #c4dcc4;
-        margin: 16px 0 24px 0;
+        border-top: 1px solid #2f5b3f !important;
+        margin: 20px 0 28px 0;
     }
 
-    /* ===========================
-       3) CABECERA + LOGOUT
-       =========================== */
+    /* 3) Cabecera */
     .header-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
-    .header-left {
-        display: flex;
-        flex-direction: column;
-    }
+    .header-left { display: flex; flex-direction: column; }
     .header-title {
-        font-size: 2.4rem;
-        color: #0a170c;
+        font-size: 2.6rem;
+        color: #ffffff;
         margin: 0;
         font-weight: 700;
     }
     .header-subtitle {
         font-size: 1rem;
-        color: #47654a;
-        margin-top: 4px;
-        margin-bottom: 0;
-    }
-    .logout-button {
-        background-color: #ffcc00;
-        color: #0a170c;
-        border: none !important;
-        border-radius: 6px;
-        padding: 6px 16px;
-        font-size: 0.95rem;
-        font-weight: 500;
-        cursor: pointer;
-    }
-    .logout-button:hover {
-        background-color: #e6b800;
+        color: #b2ccb6;
+        margin: 6px 0 0 0;
     }
 
-    /* ===========================
-       4) PANTALLA DE LOGIN
-       =========================== */
+    /* 3.1) Botones Login/Logout/Send */
+    .login-button, .logout-button, .send-button {
+        background-color: #c3dc62 !important;
+        border: none !important;
+        border-radius: 6px !important;
+        font-size: 1rem !important;
+        font-weight: 500 !important;
+        padding: 10px 22px !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s ease !important;
+    }
+    .logout-button { padding: 8px 18px !important; }
+    .login-button, .logout-button, .send-button { color: #333333 !important; }
+    .login-button:hover, .logout-button:hover, .send-button:hover {
+        background-color: #b0c54f !important;
+        color: #000000 !important;
+    }
+    /* fuerza color interno de Streamlit */
+    .login-button > div, .login-button > span,
+    .logout-button > div, .logout-button > span,
+    .send-button > div, .send-button > span {
+        color: #333333 !important;
+        opacity: 1 !important;
+    }
+    .login-button:hover > div, .logout-button:hover > div, .send-button:hover > div,
+    .login-button:hover > span, .logout-button:hover > span, .send-button:hover > span {
+        color: #000000 !important;
+    }
+
+    /* 4) Login Box */
     .login-box {
-        background-color: rgba(255, 255, 255, 0.6);
-        border-radius: 10px;
-        padding: 24px 32px;
-        margin-top: 60px;
-        margin-bottom: 60px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background-color: rgba(255,255,255,0.06) !important;
+        border-radius: 12px !important;
+        padding: 28px 32px !important;
+        margin: 60px 0 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
     }
-    .login-title {
-        font-size: 1.8rem;
-        color: #0a170c;
-        margin-bottom: 8px;
-        font-weight: 600;
-    }
-    .login-subtext {
-        font-size: 1rem;
-        color: #47654a;
-        margin-bottom: 16px;
-    }
-    .login-input .stTextInput > div {
-        max-width: 70%;
-    }
-    .login-button {
-        background-color: #ffcc00;
-        color: #0a170c;
-        border: none !important;
-        border-radius: 6px;
-        padding: 10px 20px;
-        font-size: 1rem;
-        font-weight: 500;
-        cursor: pointer;
-    }
-    .login-button:hover {
-        background-color: #e6b800;
-    }
+    .login-title { font-size: 1.8rem; color: #e6f0e8; margin-bottom: 6px; font-weight: 600; }
+    .login-subtext { font-size: 1rem; color: #b2ccb6; margin-bottom: 14px; }
+    .login-input .stTextInput > div { max-width: 60% !important; }
 
-    /* ===========================
-       5) ÁREA DE PREGUNTA + BOTÓN SEND
-       =========================== */
+    /* 5) Chat Input */
     .chat-input-area {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 28px;
+        display: flex; gap: 12px; margin-bottom: 32px;
     }
-    .chat-input-area .stTextInput > div {
-        flex: 1;
-    }
-    .send-button {
-        background-color: #ffcc00;
-        color: #0a170c;
-        border: none !important;
-        border-radius: 6px;
-        padding: 10px 22px;
-        font-size: 1rem;
-        font-weight: 500;
-        cursor: pointer;
-    }
-    .send-button:hover {
-        background-color: #e6b800;
+    .chat-input-area .stTextInput > div { flex: 1 !important; }
+    .chat-input-area input {
+        background-color: #f2f8f3 !important;
+        color: #0a2b10 !important;
+        border: 1px solid #b2ccb6 !important;
+        border-radius: 6px !important;
+        padding: 10px 14px !important;
+        font-size: 1rem !important;
     }
 
-    /* ===========================
-       6) BURBUJA DE RESPUESTA CENTRAL
-       =========================== */
+    /* 6) Burbuja de respuesta */
     .answer-container {
-        background-color: #1f402e;
-        border-radius: 14px;
-        padding: 20px 24px;
+        background-color: #11421f !important;
+        border-radius: 14px !important;
+        padding: 20px 24px !important;
         max-width: 80%;
-        line-height: 1.6;
         font-size: 1rem;
+        line-height: 1.6;
         margin-bottom: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        color: #ffffff;  /* Texto blanco para alta legibilidad */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+        color: #f2f8f3 !important;
     }
-    .answer-container strong {
-        display: block;
-        color: #ffcc00; /* “Answer:” en dorado */
-        margin-bottom: 8px;
-        font-size: 1.1rem;
-    }
+    .answer-container strong { display: block; color: #c3dc62 !important; margin-bottom: 8px; font-size: 1.1rem; }
 
-    /* ===========================
-       7) REFERENCIAS DENTRO DE LA BURBUJA
-       =========================== */
+    /* 7) Referencias */
     .refs {
-        font-size: 0.9rem;
-        color: #c0d2c2;
-        margin-top: 12px;
-        margin-left: 16px;
-        line-height: 1.4;
+        font-size: 0.9rem; color: #a0c0a1;
+        margin: 12px 0 0 16px; line-height: 1.4;
     }
 
-    /* ===========================
-       8) PANEL “RECOMMENDATIONS”
-       =========================== */
-    .streamlit-expanderHeader {
-        color: #0a170c !important;
-        font-weight: 600 !important;
-        font-size: 1.05rem !important;
+    /* 8) Panel “Personalized Recommendations” */
+    button.streamlit-expanderHeader {
+        font-size: 2rem !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
     }
     .streamlit-expanderContent {
-        background-color: #dbf0dd !important;
-        border-radius: 8px !important;
+        background-color: #e8f6e8 !important;
+        border-radius: 10px !important;
         padding: 16px 20px !important;
     }
     .recs-block {
-        background-color: #e6f4e9;
-        border-left: 4px solid #ffcc00;
-        padding: 14px 18px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        background-color: #f2faf2 !important;
+        border-left: 4px solid #c3dc62 !important;
+        padding: 16px 20px !important;
+        border-radius: 8px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
     }
-    .recs-block h4 {
-        margin: 0;
-        font-size: 1rem;
-        color: #0a170c;
-        font-weight: 600;
-    }
-    .recs-block p {
-        margin: 4px 0 0 10px;
-        font-size: 0.9rem;
-        color: #47654a;
-        line-height: 1.5;
-    }
+    .recs-block h4 { margin: 0; font-size: 1rem; color: #0a2b10; font-weight: 600; }
+    .recs-block p { margin: 6px 0 0 12px; font-size: 0.9rem; color: #2f5b3f; line-height: 1.5; }
 
-    /* ===========================
-       9) PANEL “CHAT HISTORY”
-       =========================== */
+    /* 9) Panel “Chat History” */
+    button.streamlit-expanderHeader[aria-label*="Chat History"] {
+        font-size: 2rem !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
     .history-card {
-        background-color: #e6f4e9;
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        background-color: #f2faf2 !important;
+        border-radius: 8px !important;
+        padding: 16px 18px !important;
+        margin-bottom: 16px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
     }
     .history-card h5 {
-        margin: 0;
-        color: #ffcc00;
-        font-size: 1rem;
-        font-weight: 600;
+        color: #c3dc62 !important;
+        font-size: 1.6rem !important;
+        font-weight: 700;
     }
-    .history-card p {
-        margin: 6px 0 0 0;
-        font-size: 0.95rem;
-        color: #0a170c;
-        line-height: 1.5;
-    }
+    .history-card p { margin: 6px 0 0 0; font-size: 0.95rem; color: #0a2b10; line-height: 1.5; }
     .history-card .refs {
-        font-size: 0.85rem;
-        color: #0a170c;
-        margin-top: 8px;
-        margin-left: 12px;
-        line-height: 1.4;
+        font-size: 0.85rem; color: #2f5b3f;
+        margin: 8px 0 0 12px; line-height: 1.4;
     }
 
-    /* ===========================
-       10) FOOTER
-       =========================== */
+    /* 10) Footer */
     .footer-text {
-        font-size: 0.85rem;
-        color: #47654a;
-        text-align: center;
-        margin-top: 28px;
-        margin-bottom: 12px;
+        font-size: 0.85rem; color: #a0c0a1;
+        text-align: center; margin: 32px 0 12px 0;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE: para login + chat + recomendaciones
 # ─────────────────────────────────────────────────────────────────────────────
 if "username" not in st.session_state:
-    st.session_state.username = ""  # Usuario vacío → mostramos login
+    st.session_state.username = ""  # Usuario no autenticado → mostrar login
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []  # [{"q": ..., "a": ..., "refs": [...]}]
@@ -336,7 +268,7 @@ def handle_send():
     if not q:
         return
 
-    # 1) Llamada a /rag/query
+    # 1) Llamamos a /rag/query
     try:
         resp = requests.post(
             f"{BACKEND_URL}/rag/query",
@@ -355,7 +287,7 @@ def handle_send():
     st.session_state.current_a = answer
     st.session_state.current_refs = refs
 
-    # Agregamos al historial completo
+    # Añadimos al historial completo
     st.session_state.chat_history.append({"q": q, "a": answer, "refs": refs})
 
     # 2) Llamada a /recs/personalized
@@ -370,7 +302,7 @@ def handle_send():
         recs_data = []
     st.session_state.recs_history = recs_data
 
-    # 3) Limpiar el campo de input
+    # 3) Limpiamos el campo de input
     st.session_state.input_question = ""
 
 
@@ -382,7 +314,7 @@ if not st.session_state.username:
     st.markdown(
         """
         <div class="login-box">
-          <h2 class="login-title logo-header"> Shakers AI Assistant</h2>
+          <h2 class="login-title">🤖 Shakers AI Assistant</h2>
           <p class="login-subtext">
             Enter your username to start. Once logged in, you can ask  
             technical questions about <strong>Shakers</strong>, see a clear  
@@ -407,7 +339,7 @@ if not st.session_state.username:
             pass
 
     st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()  # Detenemos la ejecución hasta que se haga login
+    st.stop()  # No mostramos nada más hasta que se haga login
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -415,12 +347,12 @@ if not st.session_state.username:
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("<div class='container'>", unsafe_allow_html=True)
 
-# 2.1) Cabecera con título + subtítulo, y botón Logout alineado a la derecha
+# 2.1) Cabecera con Título + subtítulo, y botón Logout a la derecha
 st.markdown(
     """
     <div class="header-row">
-      <div class="header-left logo-header">
-        <h1 class="header-title"> Shakers AI Assistant</h1>
+      <div class="header-left">
+        <h1 class="header-title">🤖 Shakers AI Assistant</h1>
         <p class="header-subtitle">
           Welcome, <strong>"""
     + st.session_state.username
@@ -433,7 +365,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Botón Logout como Streamlit widget (alineado a la derecha)
+# Botón Logout alineado a la derecha
 col1, col2 = st.columns([8, 1])
 with col1:
     st.write("")  # espacio vacío
@@ -459,7 +391,7 @@ with st.container():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 2.3) Burbuja de respuesta única (se reemplaza cada vez que se envía una nueva pregunta)
+# 2.3) Burbuja de respuesta única (reemplazada cada vez que se envía algo nuevo)
 if st.session_state.current_a:
     answer_clean = strip_inline_refs(st.session_state.current_a)
     st.markdown(
@@ -484,7 +416,7 @@ if st.session_state.current_a:
 
 # 2.4) Panel “Personalized Recommendations” (colapsable)
 if st.session_state.recs_history:
-    with st.expander("🎯 Personalized Recommendations", expanded=False):
+    with st.expander("🎯 Personalized Recommendations"):
         for rec in st.session_state.recs_history:
             doc_name = rec.get("doc", "")
             reason = rec.get("reason", "")
@@ -500,7 +432,7 @@ if st.session_state.recs_history:
 
 # 2.5) Panel “Chat History” (colapsable, scrollable)
 if st.session_state.chat_history:
-    with st.expander("💬 Chat History", expanded=False):
+    with st.expander("💬 Chat History"):
         for idx, entry in enumerate(st.session_state.chat_history, 1):
             question = entry["q"]
             answer = strip_inline_refs(entry["a"])
@@ -513,8 +445,8 @@ if st.session_state.chat_history:
                 f"""
                 <div class="history-card">
                   <h5>{idx}. Question:</h5>
-                  <p style="margin-left:10px; color: #0a170c;">{question}</p>
-                  <p style="margin-top:8px; color: #0a170c;"><strong>Answer:</strong> {answer}</p>
+                  <p style="margin-left:10px; color: #0a2b10;">{question}</p>
+                  <p style="margin-top:8px; color: #0a2b10;"><strong>Answer:</strong> {answer}</p>
                   {f'<div class="refs">References:<br>{refs_html}</div>' if refs_html else ""}
                 </div>
                 """,
@@ -526,7 +458,7 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 # 2.6) Footer
 st.markdown(
     """
-      <p class="footer-text">© 2025 David AI Assistant</p>
+      <p class="footer-text"> dmiralles AI Assistant</p>
       </div>  <!-- fin de .container -->
     """,
     unsafe_allow_html=True,
