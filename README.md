@@ -154,4 +154,4 @@ Abre http://localhost:8501 para ver KPI de RAG y Recs.
 
 ---
 
-**By [David Miralles]**
+**By dmiralles** 
