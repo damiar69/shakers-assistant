@@ -1,18 +1,32 @@
 # Shakers AI Assistant
 
-**Intelligent Technical Support System with Personalized Recommendations**
+**An Intelligent Technical Support System with Personalized Recommendations**
 
-Este proyecto implementa:
+This repository provides a full-featured solution for the Shakers platform:
 
-1. **RAG Query Service**: responde preguntas basadas en una base de conocimiento Markdown usando OpenAI embeddings + Chroma + LLM Gemini.
-2. **Personalized Recommendation Service**: sugiere 2–3 recursos basados en el historial de consultas del usuario.
-3. **Suite de Tests**: unitarios, integración y E2E que validan indexación, recuperación, generación y recomendaciones con datos simulados y reales.
-4. **Batch Evaluation**: script (`evaluation/evaluate.py`) que mide overlap, recall y métricas de recomendaciones en lote.
-5. **Dashboard de Métricas**: app en Streamlit (`front/dashboard.py`) para visualizar KPIs de RAG y Recs.
+1. **RAG Query Service**  
+   - Answers user questions by retrieving relevant passages from a Markdown-based knowledge base.  
+   - Uses OpenAI embeddings, a Chroma vector store, and Google Gemini to generate natural, concise answers with citations.
+
+2. **Personalized Recommendation Service**  
+   - Builds a dynamic profile per user from their query history.  
+   - Suggests 2–3 new resources (articles, tutorials) for each query, ensuring topic diversity and clear explanations.
+
+3. **Comprehensive Test Suite**  
+   - **Unit Tests** for core logic (indexing, retrieval, recommendation).  
+   - **Integration Tests** for FastAPI endpoints with mocks.  
+   - **End-to-End Tests** running real queries against your API using JSON fixtures.
+
+4. **Batch Evaluation Script** (`evaluation/evaluate.py`)  
+   - Automates measurement of key metrics: total queries, overlap, recall, recommendation count, and diversity.  
+   - Produces `metrics_summary.json` for downstream reporting and dashboards.
+
+5. **Interactive Metrics Dashboard** (`front/dashboard.py`)  
+   - A Streamlit application visualizing RAG and recommendation KPIs in a branded, responsive UI.
 
 ---
 
-##  Estructura del Repositorio
+##  Repository Layout
 
 ```
 shakers-case-study/
@@ -57,15 +71,15 @@ shakers-case-study/
 
 ---
 
-## ⚙️ Instalación
+## ⚙️ Installation & Setup
 
-1. Clona el repositorio:
+1. **Clone** the repository:
    ```bash
    git clone <URL>
    cd shakers-case-study
    ```
 
-2. Crea y activa entorno virtual:
+2. Create & activate a virtual environment
    ```bash
    python -m venv .venv
    # Windows:
@@ -74,20 +88,20 @@ shakers-case-study/
    source .venv/bin/activate
    ```
 
-3. Instala dependencias:
+3. Install Python dependencies
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Copia el ejemplo de variables de entorno:
+4. Configure environment variable
    ```bash
    cp .env.example .env
    ```
-   Rellena `.env` con tus claves OpenAI y Google.
+   Edit  `.env`  with your API keys
 
 ---
 
-## 🚀 Ejecutar la Aplicación
+##  Running the Application
 
 ### Backend
 
@@ -100,13 +114,16 @@ uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
   - POST `/recs/personalized`
   - GET `/metrics/summary`
 
-### Tests
+###  Testing & Batch Evaluation
 
 ```bash
 pytest --maxfail=1 -v -r a
 ```
 
-### Evaluación Batch
+### Batch Evaluation
+bash
+Copy
+
 
 ```bash
 python evaluation/evaluate.py
@@ -114,7 +131,7 @@ python evaluation/evaluate.py
 
 Genera `evaluation/metrics_summary.json` con las métricas.
 
-### Dashboard de Métricas
+### Metrics Dashboard
 
 ```bash
 streamlit run front/dashboard.py
@@ -124,16 +141,16 @@ Abre http://localhost:8501 para ver KPI de RAG y Recs.
 
 ---
 
-## 📈 Métricas Explicadas
+## Metrics Definitions
 
 - **RAG**:
   - Total Queries
-  - Avg Overlap (% de palabras clave)
-  - Avg Recall (% de referencias citadas)
+  - Avg Overlap (% of ideal-answer keywords present in the generated answer) 
+  - Avg Recall ( % of expected references correctly included in the response) 
 - **Recs**:
-  - Total Users evaluados
-  - Avg Recommendations (media de sugerencias)
-  - Recommendation Diversity (% recursos únicos)
+  - Total Users 
+  - Avg Recommendations (Average number of resources suggested per user. Calculated as:avg_recs = sum(len(recs_i) for each user i) / total_users)
+  - Recommendation Diversity (Measures how many of those suggestions are unique)
 
 ---
 
