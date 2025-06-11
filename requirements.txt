@@ -3,7 +3,7 @@ uvicorn
 python-dotenv
 langchain
 openai>=1.0.0
-genai==2.1.0
+google-generativeai
 sqlmodel
 databases[sqlite]
 requests
