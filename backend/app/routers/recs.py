@@ -1,3 +1,5 @@
+# backend/app/routers/recs.py
+
 import os
 import sys
 import logging
@@ -54,7 +56,7 @@ async def personalized_recs(payload: RecsRequest):
             chat_history=history_list,
             current_query=payload.current_query,
             k=3,
-            alpha=0.8,
+            alpha=0.6,
         )
     except Exception as e:
         logger.error(f"Recommendation generation failed: {e}")

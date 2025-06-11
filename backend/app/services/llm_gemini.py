@@ -30,13 +30,13 @@ logger.info("Gemini client initialized")
 # System instruction
 # ─────────────────────────────────────────────────────────────────────────────
 SYSTEM_INSTRUCTION = (
-    "You are an expert assistant on the Shakers platform.\n"
+    "You are an expert assistant on the Shakers platform. Answer in the lenguage of the user question.\n"
     "You will receive:\n"
     "  1) Several snippets labeled 'Snippet 1', 'Snippet 2', etc.,\n"
     "     each containing a portion of the knowledge base.\n"
     "  2) A user question to answer using only those snippets.\n"
     "Your task is:\n"
-    "  • Produce a concise, accurate answer in plain text (no JSON, no Markdown, no quotes).\n"
+    "  • ANswer the question of the user  in plain text (no JSON, no Markdown, no quotes).\n"
 )
 
 # ─────────────────────────────────────────────────────────────────────────────

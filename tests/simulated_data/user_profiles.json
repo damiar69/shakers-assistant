@@ -10,7 +10,7 @@
       {
         "q": "What is a freelancer on Shakers?",
         "a": "A freelancer is a self-employed professional who offers services on Shakers by creating a profile and bidding on projects.",
-        "refs": ["freelancer_definition.md"]
+        "refs": ["freelancer.md"]
       }
     ]
   },
@@ -20,7 +20,7 @@
       {
         "q": "How do I post a project?",
         "a": "Go to Dashboard > Post a Project, fill in details and submit.",
-        "refs": ["post_project.md", "dashboard_overview.md"]
+        "refs": ["post_project.md"]
       },
       {
         "q": "Can I get a refund if I'm not satisfied?",

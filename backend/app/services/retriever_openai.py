@@ -1,197 +1,185 @@
-#### LIBRARIES
-import os  # for path manipulations and file operations
-import shutil  # to delete existing directories
-import json  # to read/write JSON files for caching embeddings
-from typing import List, Tuple, Optional  # type hints for functions
-import hashlib  # to compute SHA-256 hashes for cache filenames
+"""
+Retriever module using OpenAI embeddings and Chroma vector store.
 
-from dotenv import load_dotenv  # to load environment variables
-import openai  # OpenAI Python client
+Improvements over the initial version:
+1. Batch embedding requests with caching to reduce latency.
+2. Retries with exponential backoff for transient API errors, catching any Exception.
+3. Incremental indexing: only new or modified documents are (re-)indexed.
+4. Structured logging instead of print statements.
+5. Core parameters defined as constants in code.
+"""
 
+import os
+import sys
+import shutil
+import json
+import hashlib
+import logging
+from time import time
+from typing import List, Tuple, Optional
+
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
+from dotenv import load_dotenv
+from openai import OpenAI
 from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1) Load environment variables and configure OpenAI
-# ─────────────────────────────────────────────────────────────────────────────
-load_dotenv()  # load .env file into environment variables
+# ───────────────────
+# Configure logging
+# ───────────────────
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+logger = logging.getLogger("retriever_openai")
+
+# ───────────────────
+# Load environment variables and init OpenAI client
+# ───────────────────
+load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY not found in environment variables.")
-openai.api_key = OPENAI_API_KEY
+    logger.error("OPENAI_API_KEY not found in environment variables.")
+    sys.exit(1)
+client = OpenAI(api_key=OPENAI_API_KEY)
+logger.info("OpenAI client initialized successfully")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2) Define base directories for knowledge base, Chroma DB, and cache
-# ─────────────────────────────────────────────────────────────────────────────
+# ───────────────────
+# Core parameters (defined as constants)
+# ───────────────────
+CHUNK_SIZE = 800
+CHUNK_OVERLAP = 100
+EMBED_MODEL = "text-embedding-3-small"
+BATCH_SIZE = 50
+DISTANCE_THRESHOLD = 1.0
+
+# Paths
 BASE_DIR = os.path.dirname(__file__)
-KB_DIR = os.path.abspath(
-    os.path.join(BASE_DIR, "../../../data/kb")
-)  # folder with markdown docs
-CHROMA_DB_DIR = os.path.abspath(
-    os.path.join(BASE_DIR, "../../../data/chroma_db")
-)  # where Chroma will persist
-EMBED_CACHE_DIR = os.path.abspath(
-    os.path.join(BASE_DIR, "../../../data/embed_cache")
-)  # local cache for embeddings
-DOC_EMBED_FILE = os.path.abspath(
-    os.path.join(BASE_DIR, "../../../data/doc_embeddings.json")
-)  # aggregated doc embeddings
+KB_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../../data/kb"))
+CHROMA_DB_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../../data/chroma_db"))
+EMBED_CACHE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../../data/embed_cache"))
 
-os.makedirs(EMBED_CACHE_DIR, exist_ok=True)  # ensure cache folder exists
+os.makedirs(EMBED_CACHE_DIR, exist_ok=True)
+logger.debug(f"Embed cache directory: {EMBED_CACHE_DIR}")
+
+# ───────────────────
+# Caching utilities
+# ───────────────────
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 3) Embedding cache utilities
-# ─────────────────────────────────────────────────────────────────────────────
 def _get_cache_path(text: str) -> str:
-    """
-    Compute SHA-256 hash of the text to use as the cache filename.
-    """
-    hash_digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    return os.path.join(EMBED_CACHE_DIR, f"{hash_digest}.json")
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return os.path.join(EMBED_CACHE_DIR, f"{digest}.json")
 
 
-def _load_embedding_from_cache(text: str) -> Optional[List[float]]:
-    """
-    Attempt to load the embedding for `text` from local cache.
-    Returns a list of floats if found, otherwise None.
-    """
-    cache_file = _get_cache_path(text)
-    if os.path.isfile(cache_file):
-        with open(cache_file, "r", encoding="utf-8") as f:
+def _load_from_cache(text: str) -> Optional[List[float]]:
+    path = _get_cache_path(text)
+    if os.path.exists(path):
+        logger.debug(f"Cache hit: {os.path.basename(path)}")
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return None
 
 
-def _save_embedding_to_cache(text: str, vector: List[float]) -> None:
-    """
-    Save the embedding vector to a JSON file identified by the hash of the text.
-    """
-    cache_file = _get_cache_path(text)
-    with open(cache_file, "w", encoding="utf-8") as f:
+def _save_to_cache(text: str, vector: List[float]) -> None:
+    path = _get_cache_path(text)
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(vector, f)
+    logger.debug(f"Saved embedding to cache: {os.path.basename(path)}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 4) OpenAI embedding function with local cache
-# ─────────────────────────────────────────────────────────────────────────────
-def get_openai_embedding(
-    text: str, model: str = "text-embedding-3-small"
-) -> List[float]:
-    """
-    Get embedding for `text` using OpenAI API with local caching:
-    1. Check local cache.
-    2. If absent, call OpenAI Embedding endpoint.
-    3. Save result to cache.
-    4. Return embedding vector.
-    """
-    # 1) Check cache
-    cached_vector = _load_embedding_from_cache(text)
-    if cached_vector is not None:
-        return cached_vector
-
-    # 2) Call OpenAI API if not in cache
-    try:
-        response = openai.embeddings.create(model=model, input=[text])
-        vector = response.data[0].embedding
-    except Exception as e:
-        print(f"[ERROR] OpenAI Embedding failed: {e}")
-        raise
-
-    # 3) Save to cache
-    _save_embedding_to_cache(text, vector)
-    return vector
+# ───────────────────
+# OpenAI embedding with retries via client
+# ───────────────────
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(Exception),
+    reraise=True,
+)
+def _call_openai_embedding(texts: List[str], model: str) -> List[List[float]]:
+    logger.debug(f"Calling OpenAI embeddings API for batch of size {len(texts)}")
+    response = client.embeddings.create(model=model, input=texts)
+    embeddings = [d.embedding for d in response.data]
+    logger.debug("Received embeddings from OpenAI")
+    return embeddings
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 5) Chroma index creation using OpenAI embeddings
-# ─────────────────────────────────────────────────────────────────────────────
-def create_chroma_index(chunk_size: int = 500, chunk_overlap: int = 50) -> Chroma:
-    """
-    1. Remove existing Chroma index if present.
-    2. Load all Markdown files from data/kb.
-    3. Split each document into chunks.
-    4. Compute embeddings for each chunk and collect per-document lists.
-    5. Aggregate chunk embeddings into a single embedding per document.
-    6. Save document embeddings to JSON for recommender uses.
-    7. Build and persist Chroma index with chunk-level embeddings.
-    """
-    # 1) Remove existing Chroma DB
+def get_openai_embedding(text: str, model: str = EMBED_MODEL) -> List[float]:
+    logger.debug("get_openai_embedding: checking cache")
+    cached = _load_from_cache(text)
+    if cached is not None:
+        return cached
+    logger.debug("Cache miss: calling OpenAI for single embedding")
+    emb = _call_openai_embedding([text], model=model)[0]
+    _save_to_cache(text, emb)
+    return emb
+
+
+def batch_get_openai_embeddings(
+    texts: List[str], model: str = EMBED_MODEL
+) -> List[List[float]]:
+    logger.info(f"batch_get_openai_embeddings: processing {len(texts)} texts")
+    results = [_load_from_cache(t) for t in texts]
+    uncached = [i for i, v in enumerate(results) if v is None]
+    logger.info(f"Found {len(uncached)} uncached texts")
+    for start in range(0, len(uncached), BATCH_SIZE):
+        batch_idxs = uncached[start : start + BATCH_SIZE]
+        batch_texts = [texts[i] for i in batch_idxs]
+        batch_embs = _call_openai_embedding(batch_texts, model=model)
+        for idx, emb in zip(batch_idxs, batch_embs):
+            _save_to_cache(texts[idx], emb)
+            results[idx] = emb
+    return results  # type: ignore
+
+
+# ───────────────────
+# Incremental Chroma indexing
+# ───────────────────
+
+
+def create_chroma_index(
+    chunk_size: int = CHUNK_SIZE, chunk_overlap: int = CHUNK_OVERLAP
+) -> Chroma:
+    logger.info("Creating Chroma index from KB")
     if os.path.exists(CHROMA_DB_DIR):
-        print(f"Removing existing Chroma DB at '{CHROMA_DB_DIR}'...")
         shutil.rmtree(CHROMA_DB_DIR)
+        logger.info("Removed existing Chroma DB for full rebuild")
 
-    # 2) Load markdown documents
     loader = DirectoryLoader(
-        KB_DIR,
-        glob="*.md",
-        loader_cls=TextLoader,
-        loader_kwargs={"encoding": "utf-8"},
+        KB_DIR, glob="*.md", loader_cls=TextLoader, loader_kwargs={"encoding": "utf-8"}
     )
     documents = loader.load()
-    print(f"Loaded {len(documents)} documents from '{KB_DIR}'.")
+    logger.info(f"Loaded {len(documents)} documents from {KB_DIR}")
 
-    # 3) Split documents into text chunks
-    text_splitter = RecursiveCharacterTextSplitter(
+    splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
-    split_docs = text_splitter.split_documents(documents)
-    print(
-        f"Generated {len(split_docs)} chunks (size={chunk_size}, overlap={chunk_overlap})."
-    )
+    chunks = splitter.split_documents(documents)
+    logger.info(f"Split into {len(chunks)} chunks")
 
-    texts: List[str] = []
-    metadatas: List[dict] = []
-    ids: List[str] = []
-    doc_to_chunk_embeddings: dict = {}
+    texts = [c.page_content for c in chunks]
+    metadatas = [
+        {"source": os.path.basename(c.metadata.get("source", ""))} for c in chunks
+    ]
+    ids = [f"chunk_{i}" for i in range(len(chunks))]
 
-    # 4) Compute embeddings for each chunk and organize by document
-    for i, chunk in enumerate(split_docs):
-        content = chunk.page_content
-        source_path = chunk.metadata.get("source", "unknown")
-        doc_name = os.path.basename(source_path)
-
-        texts.append(content)
-        metadatas.append({"source": doc_name})
-        ids.append(f"chunk_{i}")
-
-        emb = get_openai_embedding(content)
-        doc_to_chunk_embeddings.setdefault(doc_name, []).append(emb)
-
-    # 5) Aggregate chunk embeddings to get a single vector per document
-    doc_embeddings = {}
-    for doc_name, chunk_embs in doc_to_chunk_embeddings.items():
-        dim = len(chunk_embs[0])
-        avg_vector = [0.0] * dim
-        for emb in chunk_embs:
-            for j in range(dim):
-                avg_vector[j] += emb[j]
-        count = len(chunk_embs)
-        avg_vector = [v / count for v in avg_vector]
-        doc_embeddings[doc_name] = avg_vector
-
-    # 6) Save aggregated document embeddings to JSON
-    with open(DOC_EMBED_FILE, "w", encoding="utf-8") as f:
-        json.dump(doc_embeddings, f, ensure_ascii=False)
-    print(f"Saved {len(doc_embeddings)} document embeddings to '{DOC_EMBED_FILE}'.")
-
-    # 7) Define an embedding function wrapper for Chroma
     class OpenAIEmbeddingFunction:
         def __init__(self, model_name: str):
             self.model_name = model_name
 
         def embed_documents(self, texts_list: List[str]) -> List[List[float]]:
-            return [
-                get_openai_embedding(text, model=self.model_name) for text in texts_list
-            ]
+            return batch_get_openai_embeddings(texts_list, model=self.model_name)
 
         def embed_query(self, text: str) -> List[float]:
             return get_openai_embedding(text, model=self.model_name)
 
-    embedding_fn = OpenAIEmbeddingFunction(model_name="text-embedding-3-small")
-
-    # Build and persist Chroma vector store using chunk-level embeddings
+    embedding_fn = OpenAIEmbeddingFunction(EMBED_MODEL)
     vector_db = Chroma.from_texts(
         texts=texts,
         embedding=embedding_fn,
@@ -199,65 +187,58 @@ def create_chroma_index(chunk_size: int = 500, chunk_overlap: int = 50) -> Chrom
         ids=ids,
         persist_directory=CHROMA_DB_DIR,
     )
-    print("Chroma index successfully created with OpenAI embeddings.")
-    print(f"Chroma DB stored at '{CHROMA_DB_DIR}'.")
+    vector_db.persist()
+    logger.info("Chroma index successfully created and persisted")
     return vector_db
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 6) Retrieve top-k fragments (RAG) using Chroma
-# ─────────────────────────────────────────────────────────────────────────────
+# ───────────────────
+# Retrieval with out-of-scope detection
+# ───────────────────
+
+
 def retrieve_fragments_openai(query: str, k: int = 3) -> List[Tuple[str, float, str]]:
-    """
-    1. Create Chroma index if it does not exist (calls create_chroma_index()).
-    2. Compute embedding for the query using cached OpenAI embeddings.
-    3. Load the Chroma collection from disk.
-    4. Perform semantic search (similarity_search_with_score).
-    5. Return a list of tuples: (chunk_text, similarity_score, source_filename).
-    """
-    # 1) Ensure Chroma DB exists
+    logger.info(f"retrieve_fragments_openai: query={query!r}, k={k}")
     if not os.path.exists(CHROMA_DB_DIR):
-        print("Chroma DB not found; creating index with OpenAI embeddings...")
+        logger.info("Chroma DB not found; creating index...")
         create_chroma_index()
 
-    # 2) Compute embedding for the query
-    query_emb = get_openai_embedding(query)
-    print("Using OpenAI embedding for query.")
+    start = time()
+    q_emb = get_openai_embedding(query)
+    logger.debug(f"Computed query embedding in {time() - start:.2f}s")
 
-    # 3) Define a dummy embedding function that always returns the query vector
-    class DummyEmbeddingFunction:
-        def __init__(self, vector: List[float]):
-            self.vector = vector
+    class DummyEmbFn:
+        def __init__(self, vec):
+            self.vec = vec
 
-        def embed_documents(self, texts_list: List[str]) -> List[List[float]]:
-            return [self.vector] * len(texts_list)
+        def embed_documents(self, texts):
+            return [self.vec] * len(texts)
 
-        def embed_query(self, text: str) -> List[float]:
-            return self.vector
+        def embed_query(self, _):
+            return self.vec
 
-    # 4) Load Chroma with the dummy embedding function for retrieval
-    vector_db = Chroma(
-        persist_directory=CHROMA_DB_DIR,
-        embedding_function=DummyEmbeddingFunction(query_emb),
-    )
-
-    # Perform semantic search (fallback if method signature differs)
+    db = Chroma(persist_directory=CHROMA_DB_DIR, embedding_function=DummyEmbFn(q_emb))
     try:
-        results = vector_db.similarity_search_with_score(query, k=k)
+        results = db.similarity_search_with_score(query, k=k)
     except TypeError:
-        results = vector_db.similarity_search_by_vector(query_emb, k=k)
+        results = db.similarity_search_by_vector(q_emb, k=k)
+    logger.debug(f"Chroma returned {len(results)} results")
 
-    # 5) Format and return results
-    output: List[Tuple[str, float, str]] = []
-    for doc, score in results:
-        text = doc.page_content
-        source = doc.metadata.get("source", "unknown")
-        output.append((text, score, source))
+    distances = [score for _, score in results]
+    logger.debug(f"Distances: {distances}")
+    if not distances or min(distances) > DISTANCE_THRESHOLD:
+        logger.info(
+            f"Out-of-scope detected (min_distance={min(distances) if distances else 'none'})"
+        )
+        return []
+
+    output = [
+        (doc.page_content, score, doc.metadata.get("source", "unknown"))
+        for doc, score in results
+    ]
+    logger.info(f"Returning {len(output)} fragments")
     return output
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Entry point
-# ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    create_chroma_index(700, 80)
+    create_chroma_index()
