@@ -21,7 +21,7 @@ This repository provides a full-featured solution for the Shakers platform:
    - Automates measurement of key metrics: total queries, overlap, recall, recommendation count, and diversity.  
    - Produces `metrics_summary.json` for downstream reporting and dashboards.
 
-5. **Interactive Metrics Dashboard** (`front/dashboard.py`)  
+5. **Interactive Metrics Dashboard** (`front/metrics.py`)  
    - A Streamlit application visualizing RAG and recommendation KPIs in a branded, responsive UI.
 
 ---
