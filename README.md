@@ -5,25 +5,37 @@
 This repository provides a full-featured solution for the Shakers platform:
 
 1. **RAG Query Service**  
-   - Answers user questions by retrieving relevant passages from a Markdown-based knowledge base.  
-   - Uses OpenAI embeddings, a Chroma vector store, and Google Gemini to generate natural, concise answers with citations.
+   - What it does: Answers user questions like “How do payments work?” by pulling in-scope text from a Markdown knowledge base.
+   - How it works:
+        Embeddings: Converts both query and docs into vectors via OpenAI.
+        Retrieval: Finds the top-k most relevant chunks in Chroma.
+        Generation: Feeds those snippets + the user’s question into Google Gemini to produce a concise answer with sources.
 
 2. **Personalized Recommendation Service**  
-   - Builds a dynamic profile per user from their query history.  
-   - Suggests 2–3 new resources (articles, tutorials) for each query, ensuring topic diversity and clear explanations.
+   - What it does: After each query, suggests 2–3 fresh articles or tutorials tailored to the user’s past interests.
+   - How it works:
+        Builds a profile vector by averaging embeddings of documents the user has already seen.
+        Embeds the current query.
+        Scores all unseen docs by a weighted sum of “profile similarity” and “query similarity.”
+        Returns the top 2–3 with the reason (distance cosine similarity of documents  that the user has consulted between documents that the user has not seen)
 
 3. **Comprehensive Test Suite**  
-   - **Unit Tests** for core logic (indexing, retrieval, recommendation).  
-   - **Integration Tests** for FastAPI endpoints with mocks.  
-   - **End-to-End Tests** running real queries against your API using JSON fixtures.
+   - **Unit Tests**  Validate core algorithms (index splitting, vector retrieval, recommendation ranking).
+   - **Integration Tests**  Spin up FastAPI endpoints with mocked services to confirm JSON input/output. 
+   - **End-to-End Tests** : Fire real requests against your running API using simulated question & profile JSON files; check for minimum overlap, correct 
+                            references, and recommendation diversity.
 
 4. **Batch Evaluation Script** (`evaluation/evaluate.py`)  
-   - Automates measurement of key metrics: total queries, overlap, recall, recommendation count, and diversity.  
-   - Produces `metrics_summary.json` for downstream reporting and dashboards.
+   - What it does: Runs through all test questions and profiles in one go, measuring:
+        Overlap (how many ideal-answer keywords appear in the actual answer).
+        Recall (fraction of expected doc references returned).
+        Recommendation counts and diversity.
+
 
 5. **Interactive Metrics Dashboard** (`front/metrics.py`)  
-   - A Streamlit application visualizing RAG and recommendation KPIs in a branded, responsive UI.
-
+   - What it does: Presents your KPIs in a clean, branded Streamlit UI:
+        RAG: total queries, avg overlap %, avg recall %.
+        Recs: total users, avg recommendations per user, % unique recommendations.
 ---
 
 ##  Repository Layout
@@ -64,7 +76,7 @@ shakers-case-study/
 │   ├── test_api.py
 │   ├── test_eval_rag.py
 │   └── test_eval_recs.py
-├── .env.example
+├── .env ( create your with the api key.For Open AI use the one you have attached at the end of the document) 
 ├── requirements.txt
 └── README.md
 ```
@@ -160,5 +172,7 @@ Abre http://localhost:8501 para ver KPI de RAG y Recs.
 
 
 Any problems or questions, feel free to contact me, doesn't matter the time (+34 601147490) 
+
+If you dont have API key for OPEN AI use that: 
 
 **By dmiralles** 
