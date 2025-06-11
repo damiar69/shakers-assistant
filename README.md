@@ -139,8 +139,6 @@ pytest --maxfail=1 -v -r a
 ```
 
 ### Batch Evaluation
-bash
-Copy
 
 
 ```bash
