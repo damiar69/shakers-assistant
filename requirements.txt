@@ -2,8 +2,8 @@ fastapi
 uvicorn
 python-dotenv
 langchain
-openai>=1.0.0
-genai==2.1.0
+openai==1.86.0
+google.genai
 sqlmodel
 databases[sqlite]
 requests

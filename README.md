@@ -5,25 +5,37 @@
 This repository provides a full-featured solution for the Shakers platform:
 
 1. **RAG Query Service**  
-   - Answers user questions by retrieving relevant passages from a Markdown-based knowledge base.  
-   - Uses OpenAI embeddings, a Chroma vector store, and Google Gemini to generate natural, concise answers with citations.
+   - What it does: Answers user questions like “How do payments work?” by pulling in-scope text from a Markdown knowledge base.
+   - How it works:
+        Embeddings: Converts both query and docs into vectors via OpenAI.
+        Retrieval: Finds the top-k most relevant chunks in Chroma.
+        Generation: Feeds those snippets + the user’s question into Google Gemini to produce a concise answer with sources.
 
 2. **Personalized Recommendation Service**  
-   - Builds a dynamic profile per user from their query history.  
-   - Suggests 2–3 new resources (articles, tutorials) for each query, ensuring topic diversity and clear explanations.
+   - What it does: After each query, suggests 2–3 fresh articles or tutorials tailored to the user’s past interests.
+   - How it works:
+        Builds a profile vector by averaging embeddings of documents the user has already seen.
+        Embeds the current query.
+        Scores all unseen docs by a weighted sum of “profile similarity” and “query similarity.”
+        Returns the top 2–3 with the reason (distance cosine similarity of documents  that the user has consulted between documents that the user has not seen)
 
 3. **Comprehensive Test Suite**  
-   - **Unit Tests** for core logic (indexing, retrieval, recommendation).  
-   - **Integration Tests** for FastAPI endpoints with mocks.  
-   - **End-to-End Tests** running real queries against your API using JSON fixtures.
+   - **Unit Tests**  Validate core algorithms (index splitting, vector retrieval, recommendation ranking).
+   - **Integration Tests**  Spin up FastAPI endpoints with mocked services to confirm JSON input/output. 
+   - **End-to-End Tests** : Fire real requests against your running API using simulated question & profile JSON files; check for minimum overlap, correct 
+                            references, and recommendation diversity.
 
 4. **Batch Evaluation Script** (`evaluation/evaluate.py`)  
-   - Automates measurement of key metrics: total queries, overlap, recall, recommendation count, and diversity.  
-   - Produces `metrics_summary.json` for downstream reporting and dashboards.
+   - What it does: Runs through all test questions and profiles in one go, measuring:
+        Overlap (how many ideal-answer keywords appear in the actual answer).
+        Recall (fraction of expected doc references returned).
+        Recommendation counts and diversity.
 
-5. **Interactive Metrics Dashboard** (`front/dashboard.py`)  
-   - A Streamlit application visualizing RAG and recommendation KPIs in a branded, responsive UI.
 
+5. **Interactive Metrics Dashboard** (`front/metrics.py`)  
+   - What it does: Presents your KPIs in a clean, branded Streamlit UI:
+        RAG: total queries, avg overlap %, avg recall %.
+        Recs: total users, avg recommendations per user, % unique recommendations.
 ---
 
 ##  Repository Layout
@@ -64,14 +76,14 @@ shakers-case-study/
 │   ├── test_api.py
 │   ├── test_eval_rag.py
 │   └── test_eval_recs.py
-├── .env.example
+├── .env ( create your with the api key.For Open AI use the one you have attached at the end of the document) 
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## ⚙️ Installation & Setup
+##  Installation & Setup
 
 1. **Clone** the repository:
    ```bash
@@ -94,16 +106,16 @@ shakers-case-study/
    ```
 
 4. Configure environment variable
-   ```bash
-   cp .env.example .env
-   ```
-   Edit  `.env`  with your API keys
+
+ `.env`  with your API keys
+
+5. Run the script:  backend/app/services/retriever_openai.py to create the Chrome Vector BBDD
 
 ---
 
 ##  Running the Application
 
-### Backend
+### Deploy the app
 
 ```bash
 uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
@@ -113,6 +125,12 @@ uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
   - POST `/rag/query`
   - POST `/recs/personalized`
   - GET `/metrics/summary`
+ 
+- Execute in another terminal:
+
+```bash
+   streamlit run front/streamlit_app.py
+```
 
 ###  Testing & Batch Evaluation
 
@@ -121,27 +139,24 @@ pytest --maxfail=1 -v -r a
 ```
 
 ### Batch Evaluation
-bash
-Copy
 
 
 ```bash
 python evaluation/evaluate.py
 ```
 
-Genera `evaluation/metrics_summary.json` con las métricas.
+Will generate `evaluation/metrics_summary.json` with some metrics for the dasboard using test/simulated_data.
 
-### Metrics Dashboard
+#### Metrics Dashboard
 
+- Execute in another terminal:
+  
 ```bash
-streamlit run front/dashboard.py
+streamlit run front/metrics.py
 ```
-
-Abre http://localhost:8501 para ver KPI de RAG y Recs.
-
 ---
 
-## Metrics Definitions
+#### Metrics Definitions
 
 - **RAG**:
   - Total Queries
@@ -153,5 +168,9 @@ Abre http://localhost:8501 para ver KPI de RAG y Recs.
   - Recommendation Diversity (Measures how many of those suggestions are unique)
 
 ---
+
+If you have any problems or questions, you can contact me at any time (+34 601147490) 
+
+If you dont have API key for OPEN AI use that: 
 
 **By dmiralles** 
