@@ -1,5 +1,3 @@
-# backend/app/routers/rag.py
-
 """
 RAG router: Defines the API endpoint for Retrieval-Augmented Generation (RAG).
 

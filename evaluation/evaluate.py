@@ -103,7 +103,7 @@ def evaluate_recs(profiles, default_query):
 
 
 def save_summary(rag_summary: dict, recs_summary: dict):
-    # Guardar JSON en carpeta evaluation/
+    # Saving JSON
     script_dir = os.path.dirname(__file__)
     out = {
         "rag": {
@@ -124,7 +124,6 @@ def save_summary(rag_summary: dict, recs_summary: dict):
 
 
 if __name__ == "__main__":
-    # Ajustar rutas relativas
     base = os.path.dirname(__file__)
     qs_path = os.path.join(base, "../tests/simulated_data/test_questions.json")
     pf_path = os.path.join(base, "../tests/simulated_data/user_profiles.json")

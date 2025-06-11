@@ -1,7 +1,7 @@
 {
   "rag": {
     "total_queries": 7,
-    "avg_overlap": 0.3475783576029881,
+    "avg_overlap": 0.3210418809433588,
     "avg_recall": 0.9285714285714286
   },
   "recs": {

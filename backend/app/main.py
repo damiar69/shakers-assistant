@@ -36,6 +36,7 @@ logger.info("Environment variables loaded")
 from backend.app.routers.rag import router as rag_router
 from backend.app.routers.recs import router as recs_router
 from backend.app.db import init_db
+from backend.app.routers.metrics import router as metrics_router
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3) Ensure data directory exists
@@ -62,7 +63,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Shakers Platform AI", version="0.1.0", lifespan=lifespan)
 app.include_router(rag_router, prefix="/rag")
 app.include_router(recs_router, prefix="/recs")
-logger.info("Routers registered: /rag, /recs")
+app.include_router(metrics_router, prefix="/metrics")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6) Run the application with Uvicorn if executed directly

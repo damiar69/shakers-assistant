@@ -1,5 +1,3 @@
-# backend/app/routers/recs.py
-
 import os
 import sys
 import logging
