@@ -8,9 +8,6 @@ __pycache__/
 # Archivos de entorno
 .env
 
-# chroma BBDD
-data/chroma_db/
-
 # Logs
 *.log
 

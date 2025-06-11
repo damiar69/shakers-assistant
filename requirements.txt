@@ -2,8 +2,8 @@ fastapi
 uvicorn
 python-dotenv
 langchain
-openai
-genai
+openai>=1.0.0
+genai==2.1.0
 sqlmodel
 databases[sqlite]
 requests
@@ -12,9 +12,7 @@ streamlit
 pytest
 langchain-google-genai
 chromadb
-python-dotenv
 langchain-community
-sentence-transformers 
-langchain_chroma 
-langchain_community  
+sentence-transformers
+langchain-chroma
 numpy
