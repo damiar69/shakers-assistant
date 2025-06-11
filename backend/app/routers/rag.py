@@ -19,7 +19,7 @@ PROJECT_ROOT = os.path.abspath(
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List
 
@@ -30,38 +30,35 @@ from backend.app.db import add_chat_entry
 router = APIRouter(tags=["RAG"])
 logger = logging.getLogger("rag_router")
 
-
 class RAGQuery(BaseModel):
     user_id: str
     query: str
-
 
 class RAGResponse(BaseModel):
     answer: str
     references: List[str]
 
-
 DISTANCE_THRESHOLD = 1.0
-
 
 @router.post("/query", response_model=RAGResponse)
 async def rag_query(payload: RAGQuery):
     logger.info(f"→ RAG query start: user={payload.user_id!r} query={payload.query!r}")
 
-    # 1) Retrieve fragments
+    # 1) Retrieve fragments; if none, send out-of-scope fallback
     fragments = retrieve_fragments_openai(payload.query, k=3)
-    logger.debug(f"Fragments received: {[(round(d,3),src) for _,d,src in fragments]}")
-    if not fragments:
-        logger.error("Knowledge base not indexed or empty")
-        raise HTTPException(404, "Knowledge base not indexed or contains no documents")
+    logger.debug(f"Fragments received: {[(round(d,3), src) for _, d, src in fragments]}")
 
-    # 2) Out-of-scope detection
+    if not fragments:
+        answer = "Sorry, I have no information on that."
+        logger.info("Out-of-scope: no relevant fragments returned, sending fallback answer")
+        add_chat_entry(payload.user_id, payload.query, answer, [])
+        return RAGResponse(answer=answer, references=[])
+
+    # 2) Out-of-scope detection by distance
     distances = [dist for (_, dist, _) in fragments]
     if min(distances) > DISTANCE_THRESHOLD:
         answer = "Sorry, I have no information on that."
-        logger.info(
-            f"Out-of-scope (min_distance={min(distances):.3f}), returning fallback answer"
-        )
+        logger.info(f"Out-of-scope (min_distance={min(distances):.3f}), sending fallback answer")
         add_chat_entry(payload.user_id, payload.query, answer, [])
         return RAGResponse(answer=answer, references=[])
 
@@ -76,7 +73,7 @@ async def rag_query(payload: RAGQuery):
     logger.debug(f"LLM answer (len={len(answer_text)}): {answer_text!r}")
 
     # 5) Build and dedupe references
-    references = list(dict.fromkeys([src for (_, _, src) in fragments]))
+    references = list(dict.fromkeys(src for (_, _, src) in fragments))
     logger.debug(f"References extracted: {references}")
 
     # 6) Persist interaction
