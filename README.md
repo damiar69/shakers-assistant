@@ -83,7 +83,7 @@ shakers-case-study/
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙ Installation & Setup
 
 1. **Clone** the repository:
    ```bash
@@ -106,10 +106,10 @@ shakers-case-study/
    ```
 
 4. Configure environment variable
-   ```bash
-   cp .env.example .env
-   ```
-   Edit  `.env`  with your API keys
+
+ `.env`  with your API keys
+
+5. Run the script:  backend/app/services/retriever_openai.py to create the Chrome Vector BBDD
 
 ---
 
@@ -126,9 +126,11 @@ uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
   - POST `/recs/personalized`
   - GET `/metrics/summary`
  
-- Run on cmd:  streamlit run front/streamlit_app.py
+- Execute in another terminal:
 
-
+```bash
+   streamlit run front/streamlit_app.py
+```
 
 ###  Testing & Batch Evaluation
 
@@ -149,12 +151,11 @@ Will generate `evaluation/metrics_summary.json` with some metrics for the dasboa
 
 #### Metrics Dashboard
 
+- Execute in another terminal:
+  
 ```bash
 streamlit run front/metrics.py
 ```
-
-Abre http://localhost:8501 para ver KPI de RAG y Recs.
-
 ---
 
 #### Metrics Definitions
@@ -169,7 +170,6 @@ Abre http://localhost:8501 para ver KPI de RAG y Recs.
   - Recommendation Diversity (Measures how many of those suggestions are unique)
 
 ---
-
 
 Any problems or questions, feel free to contact me, doesn't matter the time (+34 601147490) 
 
