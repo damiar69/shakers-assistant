@@ -171,7 +171,7 @@ streamlit run front/metrics.py
 
 ---
 
-Any problems or questions, feel free to contact me, doesn't matter the time (+34 601147490) 
+If you have any problems or questions, you can contact me at any time (+34 601147490) 
 
 If you dont have API key for OPEN AI use that: 
 
