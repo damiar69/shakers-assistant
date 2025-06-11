@@ -103,7 +103,7 @@ shakers-case-study/
 
 ##  Running the Application
 
-### Backend
+### Deploy the app
 
 ```bash
 uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
@@ -113,6 +113,10 @@ uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
   - POST `/rag/query`
   - POST `/recs/personalized`
   - GET `/metrics/summary`
+ 
+- Run on cmd:  streamlit run front/streamlit_app.py
+
+
 
 ###  Testing & Batch Evaluation
 
@@ -129,19 +133,19 @@ Copy
 python evaluation/evaluate.py
 ```
 
-Genera `evaluation/metrics_summary.json` con las métricas.
+Will generate `evaluation/metrics_summary.json` with some metrics for the dasboard using test/simulated_data.
 
-### Metrics Dashboard
+#### Metrics Dashboard
 
 ```bash
-streamlit run front/dashboard.py
+streamlit run front/metrics.py
 ```
 
 Abre http://localhost:8501 para ver KPI de RAG y Recs.
 
 ---
 
-## Metrics Definitions
+#### Metrics Definitions
 
 - **RAG**:
   - Total Queries
@@ -153,5 +157,8 @@ Abre http://localhost:8501 para ver KPI de RAG y Recs.
   - Recommendation Diversity (Measures how many of those suggestions are unique)
 
 ---
+
+
+Any problems or questions, feel free to contact me, doesn't matter the time (+34 601147490) 
 
 **By dmiralles** 
