@@ -1,7 +1,6 @@
 """
 Retriever module using OpenAI embeddings and Chroma vector store.
 
-Improvements over the initial version:
 1. Batch embedding requests with caching to reduce latency.
 2. Retries with exponential backoff for transient API errors, catching any Exception.
 3. Incremental indexing: only new or modified documents are (re-)indexed.
