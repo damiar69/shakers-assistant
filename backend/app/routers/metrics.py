@@ -1,3 +1,13 @@
+"""
+Metrics router module exposing evaluation results as a REST endpoint.
+
+1. Defines a dedicated `/metrics/summary` GET endpoint for retrieval of evaluation metrics.
+2. Dynamically resolves the path to `evaluation/metrics_summary.json` relative to the module.
+3. Returns a 404 error if the metrics file is missing, guiding users to run the evaluation script.
+4. Wraps file I/O in try/except to return a 500 error on read failures with a clear message.
+5. Uses FastAPI’s JSONResponse for correct JSON content delivery.
+"""
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 import os
