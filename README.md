@@ -171,7 +171,5 @@ streamlit run front/metrics.py
 
 If you have any problems or questions, you can contact me at any time (+34 601147490) 
 
-Imnot sure if you have API key for OPEN AI, if not use that one: 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
-Is for test, i will delete it after the trial.
 
 **By dmiralles** 
