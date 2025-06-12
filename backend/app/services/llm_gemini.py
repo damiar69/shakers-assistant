@@ -1,3 +1,13 @@
+"""
+LLM Gemini module using Google Generative AI (Gemini) for RAG.
+
+1. Few-shot prompting with system instructions and examples to guide the model.
+2. Clean formatting of snippets and query into a single prompt.
+3. Structured logging at DEBUG and INFO levels for prompt, response, and timing.
+4. Error handling around the API call with clear logs on failure.
+5. Returns both the plain-text answer and metadata (elapsed time, full prompt).
+"""
+
 import os
 import time
 import logging
