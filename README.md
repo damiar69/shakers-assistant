@@ -7,17 +7,17 @@ This repository provides a full-featured solution for the Shakers platform:
 1. **RAG Query Service**  
    - What it does: Answers user questions like “How do payments work?” by pulling in-scope text from a Markdown knowledge base.
    - How it works:
-        Embeddings: Converts both query and docs into vectors via OpenAI.
-        Retrieval: Finds the top-k most relevant chunks in Chroma.
-        Generation: Feeds those snippets + the user’s question into Google Gemini to produce a concise answer with sources.
+        * Embeddings: Converts both query and docs into vectors via OpenAI.
+        * Retrieval: Finds the top-k most relevant chunks in Chroma.
+        * Generation: Feeds those snippets + the user’s question into Google Gemini to produce a concise answer with sources.
 
 2. **Personalized Recommendation Service**  
    - What it does: After each query, suggests 2–3 fresh articles or tutorials tailored to the user’s past interests.
    - How it works:
-        Builds a profile vector by averaging embeddings of documents the user has already seen.
-        Embeds the current query.
-        Scores all unseen docs by a weighted sum of “profile similarity” and “query similarity.”
-        Returns the top 2–3 with the reason (distance cosine similarity of documents  that the user has consulted between documents that the user has not seen)
+        * Builds a profile vector by averaging embeddings of documents the user has already seen.
+        * Embeds the current query.
+        * Scores all unseen docs by a weighted sum of “profile similarity” and “query similarity.”
+        * Returns the top 2–3 with the reason (distance cosine similarity of documents  that the user has consulted between documents that the user has not seen)
 
 3. **Comprehensive Test Suite**  
    - **Unit Tests**  Validate core algorithms (index splitting, vector retrieval, recommendation ranking).
@@ -27,15 +27,15 @@ This repository provides a full-featured solution for the Shakers platform:
 
 4. **Batch Evaluation Script** (`evaluation/evaluate.py`)  
    - What it does: Runs through all test questions and profiles in one go, measuring:
-        Overlap (how many ideal-answer keywords appear in the actual answer).
-        Recall (fraction of expected doc references returned).
-        Recommendation counts and diversity.
+        * Overlap (how many ideal-answer keywords appear in the actual answer).
+        * Recall (fraction of expected doc references returned).
+        * Recommendation counts and diversity.
 
 
 5. **Interactive Metrics Dashboard** (`front/metrics.py`)  
    - What it does: Presents your KPIs in a clean, branded Streamlit UI:
-        RAG: total queries, avg overlap %, avg recall %.
-        Recs: total users, avg recommendations per user, % unique recommendations.
+        * RAG: total queries, avg overlap %, avg recall %.
+        * Recs: total users, avg recommendations per user, % unique recommendations.
 ---
 
 ##  Repository Layout
