@@ -1,3 +1,13 @@
+"""
+Recommendations router module for personalized resource suggestions.
+
+1. Defines clear Pydantic models for request/response and leverages FastAPI’s validation.
+2. Retrieves user history from the database and transforms it into the required format.
+3. Integrates the recommend_resources service combining user profile and query.
+4. Structured logging at INFO and ERROR levels for traceability.
+5. Error handling with HTTPException for robust API responses.
+"""
+
 import os
 import sys
 import logging
