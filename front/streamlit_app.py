@@ -1,3 +1,13 @@
+"""
+Streamlit Frontend module for Shakers AI Assistant interface.
+
+1. Full-page custom theming with CSS injected for a polished dark-green gradient look.
+2. Base64‐encoded logo injection for self‐contained assets without external URLs.
+3. Sidebar-free, wide‐layout chat UI with login, chat input, personalized recs, and history.
+4. Session state management for username, chat history, current answer/refs, and recs.
+5. Clear separation of handlers (login, logout, send) and UI sections (login screen vs main screen).
+"""
+
 import os
 import base64
 import requests
