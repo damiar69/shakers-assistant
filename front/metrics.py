@@ -1,3 +1,13 @@
+"""
+Streamlit Metrics Dashboard module displaying evaluation results.
+
+1. Custom CSS styling for a cohesive dark-green theme and responsive layout.
+2. Base64-embedded logo for self-contained asset delivery.
+3. Dynamic loading and error handling for the metrics JSON file.
+4. Structured display of RAG and recommendation metrics using Streamlit columns.
+5. Clear separation of UI sections (header, RAG metrics, recommendation metrics).
+"""
+
 import os
 import json
 import base64
