@@ -1,3 +1,13 @@
+"""
+Personalized Recommendations module combining user history and query embeddings.
+
+1. Builds a user profile embedding from past “seen” documents to capture preferences.
+2. Blends profile similarity and query relevance via a tunable α parameter.
+3. Vectorized loading of precomputed document embeddings for fast similarity lookups.
+4. Clear separation of steps with helper functions (cosine similarity, embedding fetch).
+5. Detailed docstrings and typed signatures for maintainability and IDE support.
+"""
+
 import json
 import os
 import numpy as np
