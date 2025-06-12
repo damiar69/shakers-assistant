@@ -87,7 +87,7 @@ shakers-case-study/
 
 1. **Clone** the repository:
    ```bash
-   git clone <URL>
+   git clone https://github.com/damiar69/shakers-assistant.git
    cd shakers-case-study
    ```
 
