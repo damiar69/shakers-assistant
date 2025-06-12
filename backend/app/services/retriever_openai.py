@@ -56,7 +56,7 @@ CHUNK_SIZE = 800
 CHUNK_OVERLAP = 100
 EMBED_MODEL = "text-embedding-3-small"
 BATCH_SIZE = 50
-DISTANCE_THRESHOLD = 1.0
+DISTANCE_THRESHOLD = 1.25
 
 # Paths
 BASE_DIR = os.path.dirname(__file__)
