@@ -38,7 +38,7 @@ class RAGResponse(BaseModel):
     answer: str
     references: List[str]
 
-DISTANCE_THRESHOLD = 1.0
+DISTANCE_THRESHOLD = 1.25
 
 @router.post("/query", response_model=RAGResponse)
 async def rag_query(payload: RAGQuery):
