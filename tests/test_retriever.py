@@ -1,5 +1,3 @@
-# tests/test_retriever.py
-
 import os
 import pytest
 from backend.app.services import retriever_openai
