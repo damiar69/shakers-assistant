@@ -36,6 +36,8 @@ This repository provides a full-featured solution for the Shakers platform:
    - What it does: Presents your KPIs in a clean, branded Streamlit UI:
         * RAG: total queries, avg overlap %, avg recall %.
         * Recs: total users, avg recommendations per user, % unique recommendations.
+          
+   - The data simulated data is on`tests/simulated_data`
 ---
 
 ##  Repository Layout
