@@ -28,7 +28,7 @@ st.set_page_config(
 BACKEND_URL = os.getenv("SHAKERS_BACKEND_URL", "http://localhost:8000")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3) PREPARAR LOGO EN BASE64
+# 3) LOGO BASE64
 # ─────────────────────────────────────────────────────────────────────────────
 script_dir = os.path.dirname(__file__)
 logo_path = os.path.join(script_dir, "logo.png")
